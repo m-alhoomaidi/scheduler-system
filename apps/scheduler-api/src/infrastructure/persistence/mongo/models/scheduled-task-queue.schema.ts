@@ -5,8 +5,8 @@ export type ScheduledTaskQueueDocument = ScheduledTaskQueueSchema & Document;
 
 @Schema({ timestamps: true })
 export class ScheduledTaskQueueSchema {
-  @Prop({ required: true, unique: true })
-  id: string; // DB ID
+  @Prop({ required: false })
+  id?: string; // Optional business ID
 
   @Prop({ required: true })
   ssuuid: string; // scheduler system user unique identifier
@@ -26,11 +26,7 @@ export class ScheduledTaskQueueSchema {
   @Prop({ type: Date, default: null })
   dispatchedAt: Date;
 
-  @Prop({ type: Date, default: new Date() })
-  createdAt: Date;
-
-  @Prop({ type: Date, default: new Date() })
-  updatedAt: Date;
+  // timestamps
 }
 
 export const ScheduledTaskQueueSchemaFactory = SchemaFactory.createForClass(ScheduledTaskQueueSchema);

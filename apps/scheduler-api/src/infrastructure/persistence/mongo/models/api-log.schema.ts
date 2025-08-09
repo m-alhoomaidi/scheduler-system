@@ -5,8 +5,8 @@ export type ApiLogDocument = ApiLogSchema & Document;
 
 @Schema({ timestamps: true })
 export class ApiLogSchema {
-  @Prop({ required: true, unique: true })
-  id: string; // DB ID
+  @Prop({ required: false })
+  id?: string; // Optional business ID; Mongo _id is primary
 
     @Prop({ required: true })
   ssuuid: string; // scheduler system user unique identifier
@@ -36,13 +36,7 @@ export class ApiLogSchema {
   @Prop()
   durationMs: number;
 
-  @Prop({ type: Date, default: new Date() })
-  createdAt: Date;
-
-  // TODO fix this to be updated only when the document is updated
-
-  @Prop({ type: Date, default: new Date() })
-  updatedAt: Date;
+  // createdAt/updatedAt come from timestamps option
 }
 
 export const ApiLogSchemaFactory = SchemaFactory.createForClass(ApiLogSchema);

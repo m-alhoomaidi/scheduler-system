@@ -9,8 +9,8 @@ import { UserRepositoryPort } from '@/domain/ports';
 import { UserRepository } from './persistence/mongo/repositories/user.repository';
 import { AuthService } from '@/application/ports/auth.service';
 import { JwtAuthService } from './auth/jwt-auth.service';
-import { ApiLog } from '@/domain/entities';
 import { ApiLogRepository } from './persistence/mongo/repositories/api-log.repository';
+import { ApiLogRepositoryPort } from '@/domain/ports';
 
 @Global()
 @Module({
@@ -80,17 +80,14 @@ import { ApiLogRepository } from './persistence/mongo/repositories/api-log.repos
       useClass:JwtAuthService
     },
     {
-      provide:ApiLog,
-      useClass:ApiLogRepository
-    },
-    {
-      provide:
+      provide: ApiLogRepositoryPort,
+      useClass: ApiLogRepository,
     }
     
 
   ],
   exports: [MongoPersistenceModule,
-    'SessionService',AuthModule,UserRepositoryPort,AuthService
+    'SessionService',AuthModule,UserRepositoryPort,AuthService,ApiLogRepositoryPort
   ],
 })
 export class InfrastructureModule {}
