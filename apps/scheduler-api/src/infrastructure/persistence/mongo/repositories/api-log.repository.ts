@@ -44,4 +44,14 @@ export class ApiLogRepository extends ApiLogRepositoryPort {
     ]);
     return { data: data.map(this.toDomain), total };
   }
+
+  async findPaginated(options?: { page?: number; limit?: number }): Promise<{ data: ApiLog[]; total: number }> {
+    const { page = 1, limit = 10 } = options ?? {};
+    const skip = (page - 1) * limit;
+    const [data, total] = await Promise.all([
+      this.apiLogModel.find().skip(skip).limit(limit).lean(),
+      this.apiLogModel.countDocuments(),
+    ]);
+    return { data: data.map(this.toDomain), total };
+  }
 }

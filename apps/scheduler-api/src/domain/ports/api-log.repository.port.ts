@@ -14,6 +14,11 @@ export type LogApiRequestParams = {
 
 export abstract class ApiLogRepositoryPort {
         abstract log(entry: LogApiRequestParams): Promise<ApiLog>;
+
+        abstract findPaginated(options?: {
+          page?: number;
+          limit?: number;
+        }): Promise<{ data: ApiLog[]; total: number }>;
   
     abstract findBySSUUID(ssuuid: string, options?: {
       page?: number;
