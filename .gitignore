@@ -137,3 +137,11 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Scheduler Engine (Java/Gradle) build outputs and unused files
+apps/scheduler-engine/.gradle/
+apps/scheduler-engine/build/
+apps/scheduler-engine/target/
+apps/scheduler-engine/out/
+apps/scheduler-engine/bin/
+apps/scheduler-engine/HELP.md
