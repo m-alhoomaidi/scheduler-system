@@ -1,0 +1,2 @@
+scheduler-api is the public-facing service in a distributed task scheduling system. Built using NestJS with a strict hexagonal architecture, it exposes secure RESTful endpoints for managing scheduled tasks. It handles authentication, input validation, logging, and delegates task execution to an internal gRPC service (scheduler-engine). The service includes multilingual support, Redis-based session handling, structured log masking for sensitive data, rate limiting, and full API documentation. MongoDB is used for persistence and observability.
+
