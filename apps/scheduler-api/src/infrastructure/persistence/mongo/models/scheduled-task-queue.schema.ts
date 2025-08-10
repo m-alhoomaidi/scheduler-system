@@ -26,7 +26,11 @@ export class ScheduledTaskQueueSchema {
   @Prop({ type: Date, default: null })
   dispatchedAt: Date;
 
-  // timestamps
+  @Prop()
+  createdAt: Date;
+
+  @Prop()
+  updatedAt: Date;
 }
 
 export const ScheduledTaskQueueSchemaFactory = SchemaFactory.createForClass(ScheduledTaskQueueSchema);

@@ -6,11 +6,9 @@ import {
 } from '@nestjs/mongoose';
 
 // your schema factories
-import {
-  UserSchemaFactory,
-  ApiLogSchemaFactory,
-  ScheduledTaskQueueSchemaFactory,
-} from './models';
+import { UserSchemaFactory } from './models/user.schema';
+import { ApiLogSchemaFactory } from './models/api-log.schema';
+import { ScheduledTaskQueueSchemaFactory } from './models/scheduled-task-queue.schema';
 
 const FEATURE_SCHEMAS = [
   { name: 'User', schema: UserSchemaFactory },

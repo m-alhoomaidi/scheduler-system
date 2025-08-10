@@ -1,12 +1,21 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { ValidationPipe } from '@nestjs/common';
 import * as basicAuth from 'express-basic-auth';
 import helmet from 'helmet';
 import { json, urlencoded } from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  
+  // Global validation pipe
+  app.useGlobalPipes(new ValidationPipe({
+    whitelist: true,
+    forbidNonWhitelisted: true,
+    transform: true,
+  }));
+  
   app.setGlobalPrefix('/api')
   app.use(helmet());
   app.use(json({ limit: '1mb' }));
@@ -40,5 +49,6 @@ async function bootstrap() {
  
   await app.listen(process.env.PORT ?? 3000);
   console.log(`Scheduler API is running on port ${process.env.PORT ?? 3000}`);
+  console.log(`Swagger is running on http://localhost:${process.env.PORT ?? 3000}/docs`);
 }
 bootstrap();

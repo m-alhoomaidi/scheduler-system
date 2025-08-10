@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package scheduler;
+
+service TaskEngine {
+  rpc RegisterTask (RegisterTaskRequest) returns (RegisterTaskResponse);
+  rpc DeleteTask (DeleteTaskRequest) returns (DeleteTaskResponse);
+  rpc Ping (PingRequest) returns (PingResponse);
+}
+
+message RegisterTaskRequest {
+  string ssuuid = 1;
+  string message = 2;
+  string idempotencyKey = 3;
+}
+
+message RegisterTaskResponse {
+  string taskId = 1;
+}
+
+message DeleteTaskRequest {
+  string taskId = 1;
+}
+
+message DeleteTaskResponse {
+  bool ok = 1;
+}
+
+message PingRequest {}
+message PingResponse { string message = 1; }
+
+

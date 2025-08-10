@@ -14,9 +14,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  // Use TokenPayload instead of any
+  
   async validate(payload: TtokenPayload): Promise<{ ssuid: string; username: string }> {
-    // you can further type this return value as a UserPrincipal VO if you have one
     return { username: payload.username,
       ssuid:payload.ssuid
      };
