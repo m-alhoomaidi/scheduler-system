@@ -14,14 +14,19 @@ export class User {
     public readonly createdAt: Date,
     public readonly updatedAt: Date,
     public deletedAt: Date | null = null,
+    options?: { isHashed?: boolean; skipValidation?: boolean },
   ) {
-    this.password = this.hashPassword(password);
+    const isHashed = options?.isHashed === true;
+    const skipValidation = options?.skipValidation === true;
 
-    if (!this.validateUsername(username)) throw new Error('Username must be between 3 and 20 characters');
-    if (!this.validatePassword(password)) throw new Error('Password must be between 8 and 20 characters');
+    this.password = isHashed ? password : this.hashPassword(password);
 
-    if (!this.validateRole(role)) throw new Error('Role must be USER or ADMIN');
-
+    if (!skipValidation) {
+      if (!this.validateUsername(username)) throw new Error('Username must be between 3 and 20 characters');
+      // Only validate plaintext length when not hashed
+      if (!isHashed && !this.validatePassword(password)) throw new Error('Password must be between 8 and 20 characters');
+      if (!this.validateRole(role)) throw new Error('Role must be USER or ADMIN');
+    }
   }
 
   // handle the password hashing and validation
@@ -38,7 +43,7 @@ export class User {
   }
 
   validatePassword(password: string): boolean {
-    return password.length > 8 && password.length < 20;
+    return password.length >= 8 && password.length <= 20;
   }
 
   validateRole(role: UserRole): boolean {

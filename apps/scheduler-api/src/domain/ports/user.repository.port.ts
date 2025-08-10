@@ -15,7 +15,7 @@ export type UpdateLastLoginParams = {
 };
 
 export abstract class UserRepositoryPort {
-  abstract create(userData: CreateUserParams): Promise<User>;
+  abstract create(user: User): Promise<User>;
 
 
   abstract updateLastLogin(userData: UpdateLastLoginParams): Promise<User | null>;

@@ -11,6 +11,12 @@ import { AuthService } from '@/application/ports/auth.service';
 import { JwtAuthService } from './auth/jwt-auth.service';
 import { ApiLogRepository } from './persistence/mongo/repositories/api-log.repository';
 import { ApiLogRepositoryPort } from '@/domain/ports';
+import { LoggerModule } from './logger/logger.module';
+import { ScheduledTaskQueueRepository } from './persistence/mongo/repositories/scheduled-task-queue.repository';
+import { ScheduledTaskQueueRepositoryPort } from '@/domain/ports';
+import { GrpcModule } from './grpc/grpc.module';
+import { TaskEngineGrpcClient } from './grpc/task-engine.client';
+import { TaskEnginePort } from '@/domain/ports/task-engine.port';
 
 @Global()
 @Module({
@@ -64,7 +70,9 @@ import { ApiLogRepositoryPort } from '@/domain/ports';
       },
     }),
     RedisModule.registerAsync() ,
-    AuthModule
+    AuthModule,
+    GrpcModule,
+    LoggerModule.forRoot(),
   ],
   providers:[
     {
@@ -82,12 +90,29 @@ import { ApiLogRepositoryPort } from '@/domain/ports';
     {
       provide: ApiLogRepositoryPort,
       useClass: ApiLogRepository,
+    },
+   
+    {
+      provide: ScheduledTaskQueueRepositoryPort,
+      useClass: ScheduledTaskQueueRepository,
+    },
+    {
+      provide: TaskEnginePort,
+      useExisting: TaskEngineGrpcClient,
     }
     
 
   ],
-  exports: [MongoPersistenceModule,
-    'SessionService',AuthModule,UserRepositoryPort,AuthService,ApiLogRepositoryPort
+  exports: [
+    MongoPersistenceModule,
+    LoggerModule,
+    'SessionService',
+    AuthModule,
+    UserRepositoryPort,
+    AuthService,
+    ApiLogRepositoryPort,
+    ScheduledTaskQueueRepositoryPort,
+    TaskEnginePort
   ],
 })
 export class InfrastructureModule {}

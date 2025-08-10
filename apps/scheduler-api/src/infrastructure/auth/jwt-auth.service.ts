@@ -1,13 +1,14 @@
-// src/infrastructure/auth/jwt-auth.service.ts
+
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
-import { JwtService }                       from '@nestjs/jwt';
-import { AuthService }                      from '../../application/ports/auth.service';
-import { Credentials }                      from '../../application/dto/credentials.dto';
-import { TAuthResult }                      from '@/domain/types/auth/auth-result';
+import { JwtService } from '@nestjs/jwt';
+import { AuthService } from '@application/ports/auth.service';
+import { Credentials } from '@application/dto/credentials.dto';
+import { TAuthResult }  from '@/domain/types/auth/auth-result';
 import { UserRepositoryPort } from '@/domain/ports';
 import { TtokenPayload } from '@/domain/types/auth/token-payload.type';
 import * as crypto from 'crypto';
 import { SessionService } from '@/application/session/session.service';
+import { LoggerPort } from '@/application/ports/logger.port';
 
 
 @Injectable()
@@ -16,18 +17,26 @@ export class JwtAuthService implements AuthService {
     private readonly jwtService: JwtService,
     private readonly userRepo: UserRepositoryPort,
     @Inject('SessionService') private readonly sessionService: SessionService,
+    private readonly logger: LoggerPort
   ) {}
 
-  
+
 
  
   async verify(creds: Credentials, ip: string): Promise<TAuthResult>  {
     const user = await this.userRepo.findByUsername(creds.username);
-    if (!user) throw new UnauthorizedException('Unauthorized');
+    if (!user) {
+      this.logger.error('User not found', { username: creds.username });
+      throw new UnauthorizedException('Invalid credentials'); // should not reveal the user is not found or the password is incorrect is not a security issue
+    }
 
-    // align with domain hashing (sha256 in entity)
+
+
     const hashed = crypto.createHash('sha256').update(creds.password).digest('hex');
-    if (hashed !== user.password) throw new UnauthorizedException('Unauthorized');
+    if (hashed !== user.password) {
+      this.logger.error('Invalid password', { username: creds.username });
+      throw new UnauthorizedException('Invalid credentials'); // should not reveal the user is not found or the password is incorrect is not a security issue
+    }
 
     const payload: TtokenPayload = { ssuid: user.ssuuid, username: user.username };
     const accessToken = await this.jwtService.signAsync(payload);
@@ -37,7 +46,7 @@ export class JwtAuthService implements AuthService {
     try {
       await this.userRepo.updateLastLogin({ ssuuid: user.ssuuid, lastLoginAt: new Date(), lastLoginIp: ip || null as any });
     } catch {
-      // non-blocking
+      this.logger.error('Failed to update last login metadata', { username: user.username });
     }
 
     return { accessToken };

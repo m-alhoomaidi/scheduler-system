@@ -1,4 +1,3 @@
-// src/infrastructure/persistence/mongo/repositories/user.repository.ts
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -25,18 +24,25 @@ export class UserRepository extends UserRepositoryPort {
       doc.createdAt,
       doc.updatedAt,
       doc.deletedAt,
+      { isHashed: true }
     );
   }
 
-  async create(userData: {
-    ssuuid: string;
-    username: string;
-    password: string;
-    role: User['role'];
-  }): Promise<User> {
+  async create(user: User): Promise<User> {
+    const userData = {
+      ssuuid: user.ssuuid,
+      username: user.username,
+      password: user.password,
+      role: user.role,
+      lastLoginAt: user.lastLoginAt,
+      lastLoginIp: user.lastLoginIp,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+      deletedAt: user.deletedAt,
+    };
     const created = new this.userModel(userData);
     const saved = await created.save();
-    return this.toDomain(saved) ?? null;
+    return this.toDomain(saved);
   }
 
   async findBySSUUID(ssuuid: string): Promise<User | null> {

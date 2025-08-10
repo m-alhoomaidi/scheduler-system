@@ -2,13 +2,14 @@ import {
     Injectable,
     ExecutionContext,
     UnauthorizedException,
+    Inject,
   } from '@nestjs/common';
   import { AuthGuard }               from '@nestjs/passport';
-  import { SessionService }          from '@application/session/session.service';
+  import { SessionService }          from '@/application/session/session.service';
   
   @Injectable()
   export class JwtSessionGuard extends AuthGuard('jwt') {
-    constructor(private readonly sessionService: SessionService) {
+    constructor(@Inject('SessionService') private readonly sessionService: SessionService) {
       super();
     }
   
