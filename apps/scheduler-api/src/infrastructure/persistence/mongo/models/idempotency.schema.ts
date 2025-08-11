@@ -28,4 +28,4 @@ export class Idempotency {
     
 }
 
-export const IdempotencySchema = SchemaFactory.createForClass(Idempotency);
+export const IdempotencySchemaFactory = SchemaFactory.createForClass(Idempotency);

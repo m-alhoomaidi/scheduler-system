@@ -11,7 +11,6 @@ service TaskEngine {
 message RegisterTaskRequest {
   string ssuuid = 1;
   string message = 2;
-  string idempotencyKey = 3;
 }
 
 message RegisterTaskResponse {

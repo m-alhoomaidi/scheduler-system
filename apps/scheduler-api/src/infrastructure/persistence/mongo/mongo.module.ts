@@ -9,11 +9,13 @@ import {
 import { UserSchemaFactory } from './models/user.schema';
 import { ApiLogSchemaFactory } from './models/api-log.schema';
 import { ScheduledTaskQueueSchemaFactory } from './models/scheduled-task-queue.schema';
+import { IdempotencySchemaFactory  } from './models/idempotency.schema';
 
 const FEATURE_SCHEMAS = [
   { name: 'User', schema: UserSchemaFactory },
   { name: 'ApiLog', schema: ApiLogSchemaFactory },
   { name: 'ScheduledTaskQueue', schema: ScheduledTaskQueueSchemaFactory },
+  {name : 'Idempotency', schema: IdempotencySchemaFactory}
 ];
 
 @Global()
