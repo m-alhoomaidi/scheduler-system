@@ -94,3 +94,13 @@ protobuf {
 tasks.named('test') {
 	useJUnitPlatform()
 }
+
+
+// To use proto file from libs/proto (shared libs)
+sourceSets {
+  main {
+    proto {
+      srcDir '../../libs/proto'   
+    }
+  }
+}

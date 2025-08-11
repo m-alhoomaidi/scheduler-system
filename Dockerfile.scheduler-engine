@@ -1,0 +1,40 @@
+
+FROM gradle:8.5-jdk21 AS builder
+WORKDIR /app
+
+COPY apps/scheduler-engine/build.gradle ./apps/scheduler-engine/build.gradle
+COPY apps/scheduler-engine/settings.gradle ./apps/scheduler-engine/settings.gradle
+COPY apps/scheduler-engine/gradle ./apps/scheduler-engine/gradle
+COPY apps/scheduler-engine/gradlew ./apps/scheduler-engine/gradlew
+
+COPY libs/proto ./libs/proto
+
+WORKDIR /app/apps/scheduler-engine
+RUN ./gradlew dependencies --no-daemon
+
+COPY apps/scheduler-engine/src ./src
+
+RUN ./gradlew clean generateProto build -x test --no-daemon
+
+
+
+FROM eclipse-temurin:21-jre-alpine
+WORKDIR /app
+
+RUN addgroup -g 1001 -S spring && adduser -S spring -u 1001
+
+COPY --from=builder /app/apps/scheduler-engine/build/libs/*.jar app.jar
+
+RUN apk add --no-cache bash
+
+USER spring:spring
+
+ENV JAVA_OPTS="-Xmx512m -Xms256m"
+
+EXPOSE 8081 50051
+
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=5 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8081/actuator/health || exit 1
+
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
