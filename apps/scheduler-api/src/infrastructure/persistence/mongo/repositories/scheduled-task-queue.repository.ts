@@ -15,7 +15,6 @@ export class ScheduledTaskQueueRepository extends ScheduledTaskQueueRepositoryPo
       doc.id,
       doc.ssuuid,
       doc.message,
-      doc.idempotencyKey ?? null,
       doc.grpcResponse,
       doc.isDispatched,
       doc.dispatchedAt,
@@ -39,10 +38,7 @@ export class ScheduledTaskQueueRepository extends ScheduledTaskQueueRepositoryPo
     return docs.map(this.toDomain);
   }
 
-  async findByIdempotencyKey(ssuuid: string, idempotencyKey: string): Promise<ScheduledTaskQueue | null> {
-    const doc = await this.scheduledTaskQueueModel.findOne({ ssuuid, idempotencyKey }).lean();
-    return doc ? this.toDomain(doc as any) : null;
-  }
+
 
   async findBySSUUID(ssuuid: string, options?: { page?: number; limit?: number }): Promise<{ data: ScheduledTaskQueue[]; total: number }>{
     const { page = 1, limit = 10 } = options ?? {};

@@ -14,8 +14,7 @@ export class ScheduledTaskQueueSchema {
   @Prop({ required: true })
   message: string;
 
-  @Prop({ type: String, default: null })
-  idempotencyKey?: string;
+ 
 
   @Prop({ type: Object })
   grpcResponse?: any;

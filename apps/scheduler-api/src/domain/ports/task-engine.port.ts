@@ -1,4 +1,4 @@
-export type TRegisterTaskInput = { ssuuid: string; message: string; idempotencyKey?: string };
+export type TRegisterTaskInput = { ssuuid: string; message: string; };
 export type TRegisterTaskOutput = { taskId: string };
 
 export abstract class TaskEnginePort {

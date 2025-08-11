@@ -4,8 +4,8 @@ import {
     UnauthorizedException,
     Inject,
   } from '@nestjs/common';
-  import { AuthGuard }               from '@nestjs/passport';
-  import { SessionService }          from '@/application/session/session.service';
+  import { AuthGuard }  from '@nestjs/passport';
+  import { SessionService }    from '@/application/session/session.service';
   
   @Injectable()
   export class JwtSessionGuard extends AuthGuard('jwt') {
@@ -14,7 +14,6 @@ import {
     }
   
     async canActivate(ctx: ExecutionContext) {
-      // 1. Validate JWT signature & expiration
       const ok = (await super.canActivate(ctx)) as boolean;
       if (!ok) return false;
   
@@ -23,13 +22,12 @@ import {
       const token = auth.replace(/^Bearer\s+/, '');
       const { ssuid } = req.user as { ssuid: string };
   
-      // 2. Ensure session exists in Redis
       const valid = await this.sessionService.isValidSession(ssuid, token);
       if (!valid) {
         throw new UnauthorizedException('Session expired');
       }
-  
-      // 3. Renew TTL back to 5 minutes
+      
+      // renew session
       await this.sessionService.renewSession(ssuid, token);
       return true;
     }

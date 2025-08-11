@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: scheduler_engine
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d scheduler_engine" 
+          --health-interval 10s --health-timeout 5s --health-retries 5
+      mongo:
+        image: mongo:5.0
+        ports:
+          - 27018:27017
+      redis:
+        image: redis:7.0-alpine
+        ports:
+          - 6380:6379
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      - name: Install root deps
+        run: yarn install --frozen-lockfile
+
+      - name: Generate TS proto (API)
+        working-directory: apps/scheduler-api
+        run: yarn gen:proto
+
+      - name: Lint API
+        working-directory: apps/scheduler-api
+        run: yarn lint
+
+      - name: Test API
+        working-directory: apps/scheduler-api
+        env:
+          MONGO_URI: mongodb://localhost:27018/scheduler-api
+          REDIS_URL: redis://localhost:6380
+          ENGINE_GRPC_URL: localhost:50051
+          JWT_SECRET: test
+        run: yarn test --runInBand
+
+      - name: Build API
+        working-directory: apps/scheduler-api
+        run: yarn build
+
+      - name: Generate Java proto (Engine)
+        working-directory: apps/scheduler-engine
+        run: ./gradlew generateProto
+
+      - name: Build Engine
+        working-directory: apps/scheduler-engine
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5434/scheduler_engine
+          SPRING_DATASOURCE_USERNAME: postgres
+          SPRING_DATASOURCE_PASSWORD: postgres
+        run: ./gradlew build -x test
+
+
+

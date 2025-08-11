@@ -9,7 +9,7 @@ import { TtokenPayload } from '@/domain/types/auth/token-payload.type';
 import * as crypto from 'crypto';
 import { SessionService } from '@/application/session/session.service';
 import { LoggerPort } from '@/application/ports/logger.port';
-
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class JwtAuthService implements AuthService {
@@ -32,8 +32,8 @@ export class JwtAuthService implements AuthService {
 
 
 
-    const hashed = crypto.createHash('sha256').update(creds.password).digest('hex');
-    if (hashed !== user.password) {
+    const hashed = await bcrypt.compare(creds.password, user.password);
+    if (!hashed) {
       this.logger.error('Invalid password', { username: creds.username });
       throw new UnauthorizedException('Invalid credentials'); // should not reveal the user is not found or the password is incorrect is not a security issue
     }

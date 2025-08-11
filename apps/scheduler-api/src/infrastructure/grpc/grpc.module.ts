@@ -15,16 +15,18 @@ import { TaskEngineGrpcClient } from './task-engine.client';
         imports: [ConfigModule],
         useFactory: (cfg: ConfigService) => {
           const candidates = [
+            // shared proto in monorepo
             join(process.cwd(), '../../libs/proto/scheduler.proto'),
-          
           ];
           const protoPath = candidates.find((p) => existsSync(p)) ?? candidates[0];
+
           return {
             transport: Transport.GRPC,
             options: {
-              package: 'scheduler',
-              protoPath,
-              url: cfg.get<string>('ENGINE_GRPC_URL', '0.0.0.0:50051'),
+              url: cfg.get<string>('ENGINE_GRPC_URL', 'localhost:50051'),
+              package: 'scheduler',   
+              protoPath,  
+                          
             },
           };
         },
@@ -36,5 +38,3 @@ import { TaskEngineGrpcClient } from './task-engine.client';
   exports: [TaskEngineGrpcClient],
 })
 export class GrpcModule {}
-
-

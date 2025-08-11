@@ -9,31 +9,26 @@ export class CreateTaskUseCase {
     private readonly taskEngine: TaskEnginePort,
   ) {}
 
-  async execute(input: { ssuuid: string; message: string; idempotencyKey?: string }) {
+  async execute(input: { ssuuid: string; message: string; }) {
     // health check first
     try {
       await this.taskEngine.ping();
     } catch {
       throw new ServiceUnavailableException('Task engine is unavailable');
     }
-    if (input.idempotencyKey) {
-      const exists = await this.queueRepo.findByIdempotencyKey(input.ssuuid, input.idempotencyKey);
-      if (exists) return { id: exists.id, idempotencyKey: input.idempotencyKey };
-    }
+   
 
     const grpc = await this.taskEngine.registerTask({
       ssuuid: input.ssuuid,
       message: input.message,
-      idempotencyKey: input.idempotencyKey,
     });
 
     const saved = await this.queueRepo.enqueue({
       ssuuid: input.ssuuid,
       message: input.message,
-      idempotencyKey: input.idempotencyKey,
     });
 
-    return { id: grpc.taskId || saved.id, idempotencyKey: input.idempotencyKey };
+    return { id: grpc.taskId || saved.id,  };
   }
 
   async pingEngine() {

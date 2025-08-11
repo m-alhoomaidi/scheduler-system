@@ -23,11 +23,10 @@ export class TaskController {
   @ApiOperation({ summary: 'Create a scheduled task (idempotent with Idempotency-Key header)' })
   async create(
     @Body() dto: CreateTaskDto,
-    @Headers('idempotency-key') idempotencyKey: string | undefined,
     @Req() req: any,
   ) {
     const { ssuid } = req.user as { ssuid: string };
-    return this.createTask.execute({ ssuuid: ssuid, message: dto.message, idempotencyKey });
+    return this.createTask.execute({ ssuuid: ssuid, message: dto.message });
   }
 
   @Delete(':id')
