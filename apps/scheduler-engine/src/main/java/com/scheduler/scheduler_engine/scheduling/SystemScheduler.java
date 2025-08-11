@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit;
 
 @Component
 @Slf4j
-public class NativeScheduler implements InitializingBean, DisposableBean {
+public class SystemScheduler implements InitializingBean, DisposableBean {
     private final TaskExecutionService taskExecutionService;
     private final String executionCronExpression;
     private final long cleanupIntervalMillis;
@@ -27,7 +27,7 @@ public class NativeScheduler implements InitializingBean, DisposableBean {
     private ScheduledFuture<?> executionFuture;
     private ScheduledFuture<?> cleanupFuture;
 
-    public NativeScheduler(
+    public SystemScheduler(
             TaskExecutionService taskExecutionService,
             @Value("${scheduler.task.execution-cron:*/5 * * * * *}") String executionCronExpression,
             @Value("${scheduler.task.cleanup-interval:3600000}") long cleanupIntervalMillis
