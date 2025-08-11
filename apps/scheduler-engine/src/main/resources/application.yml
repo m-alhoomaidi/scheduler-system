@@ -41,3 +41,11 @@ logging:
     org.hibernate: WARN
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# Scheduler settings
+scheduler:
+  task:
+    execution-cron: "*/5 * * * * *"
+    cleanup-enabled: true
+    cleanup-interval: 3600000
+    max-executions: 10

@@ -3,11 +3,15 @@ package com.scheduler.scheduler_engine.grpc;
 import com.scheduler.scheduler_engine.domain.entity.ScheduledTask;
 import com.scheduler.scheduler_engine.domain.repository.ScheduledTaskRepository;
 import com.scheduler.scheduler_engine.proto.v1.*;
+import com.scheduler.scheduler_engine.domain.entity.TaskStatus;
+import com.google.protobuf.Timestamp;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.devh.boot.grpc.server.service.GrpcService;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,17 +30,17 @@ public class TaskEngineGrpcService extends TaskEngineGrpc.TaskEngineImplBase {
     @Transactional
     public void registerTask(RegisterTaskRequest request, StreamObserver<RegisterTaskResponse> responseObserver) {
         try {
-            if (request.getSsuuid().isBlank() || request.getMessage().isBlank() || request.getIdempotencyKey().isBlank()) {
+            if (request.getSsuuid().isBlank() || request.getMessage().isBlank()) {
                 responseObserver.onError(
-                        Status.INVALID_ARGUMENT.withDescription("ssuuid, message and idempotencyKey are required and must be non-blank").asRuntimeException()
+                        Status.INVALID_ARGUMENT.withDescription("ssuuid and message are required and must be non-blank").asRuntimeException()
                 );
                 return;
             }
 
-            log.info("RegisterTask: ssuuid={}, idempotencyKey={}", request.getSsuuid(), request.getIdempotencyKey());
+            log.info("RegisterTask: ssuuid={}", request.getSsuuid());
 
             Optional<ScheduledTask> existing = scheduledTaskRepository
-                    .findBySsuuidAndIdempotencyKeyAndDeletedAtIsNull(request.getSsuuid(), request.getIdempotencyKey());
+                    .findBySsuuidAndDeletedAtIsNull(request.getSsuuid());
 
             if (existing.isPresent()) {
                 String taskId = existing.get().getId().toString();
@@ -47,8 +51,7 @@ public class TaskEngineGrpcService extends TaskEngineGrpc.TaskEngineImplBase {
 
             ScheduledTask toSave = new ScheduledTask(
                     request.getSsuuid(),
-                    request.getMessage(),
-                    request.getIdempotencyKey()
+                    request.getMessage()
             );
 
             try {
@@ -57,7 +60,7 @@ public class TaskEngineGrpcService extends TaskEngineGrpc.TaskEngineImplBase {
                 respond(responseObserver, RegisterTaskResponse.newBuilder().setTaskId(saved.getId().toString()).build());
             } catch (DataIntegrityViolationException dup) {
                 ScheduledTask winner = scheduledTaskRepository
-                        .findBySsuuidAndIdempotencyKeyAndDeletedAtIsNull(request.getSsuuid(), request.getIdempotencyKey())
+                            .findBySsuuidAndDeletedAtIsNull(request.getSsuuid())
                         .orElseThrow(() -> dup); // should exist now
                 log.info("RegisterTask concurrent idempotent hit: taskId={}", winner.getId());
                 respond(responseObserver, RegisterTaskResponse.newBuilder().setTaskId(winner.getId().toString()).build());
@@ -124,5 +127,59 @@ public class TaskEngineGrpcService extends TaskEngineGrpc.TaskEngineImplBase {
     private static <T> void respond(StreamObserver<T> obs, T msg) {
         obs.onNext(msg);
         obs.onCompleted();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public void listTasks(ListTasksRequest request, StreamObserver<ListTasksResponse> responseObserver) {
+        try {
+            int page = Math.max(0, request.getPage());
+            int size = request.getPageSize() > 0 ? request.getPageSize() : 20;
+            Pageable pageable = PageRequest.of(page, size);
+
+            TaskStatus statusFilter = null;
+            if (!request.getStatus().isBlank()) {
+                try {
+                    statusFilter = TaskStatus.valueOf(request.getStatus());
+                } catch (IllegalArgumentException e) {
+                    responseObserver.onError(Status.INVALID_ARGUMENT.withDescription("Invalid status filter").asRuntimeException());
+                    return;
+                }
+            }
+
+            String ssuuidFilter = request.getSsuuid().isBlank() ? null : request.getSsuuid();
+
+            var pageResult = scheduledTaskRepository.findAllPaginated(ssuuidFilter, statusFilter, pageable);
+
+            ListTasksResponse.Builder resp = ListTasksResponse.newBuilder()
+                    .setTotal(pageResult.getTotalElements())
+                    .setPage(page)
+                    .setPageSize(size)
+                    .setHasNext(pageResult.hasNext());
+
+            for (ScheduledTask t : pageResult.getContent()) {
+                resp.addTasks(TaskItem.newBuilder()
+                        .setId(t.getId().toString())
+                        .setSsuuid(t.getSsuuid())
+                        .setMessage(t.getMessage())
+                        .setStatus(t.getStatus().name())
+                        .setExecutionCount(t.getExecutionCount())
+                        .setCreatedAt(toTs(t.getCreatedAt()))
+                        .setUpdatedAt(toTs(t.getUpdatedAt()))
+                        .setLastExecutedAt(toTs(t.getLastExecutedAt()))
+                        .build());
+            }
+
+            respond(responseObserver, resp.build());
+        } catch (Exception e) {
+            log.error("ListTasks error: {}", e.getMessage(), e);
+            responseObserver.onError(Status.INTERNAL.withDescription("Failed to list tasks").withCause(e).asRuntimeException());
+        }
+    }
+
+    private static Timestamp toTs(java.time.LocalDateTime time) {
+        if (time == null) return Timestamp.getDefaultInstance();
+        java.time.Instant instant = time.atZone(java.time.ZoneId.systemDefault()).toInstant();
+        return Timestamp.newBuilder().setSeconds(instant.getEpochSecond()).setNanos(instant.getNano()).build();
     }
 }

@@ -13,9 +13,8 @@ import java.util.UUID;
 @Entity
 @Table(name = "scheduled_tasks", indexes = {
     @Index(name = "idx_ssuuid", columnList = "ssuuid"),
-    @Index(name = "idx_idempotency_key", columnList = "ssuuid, idempotencyKey", unique = true),
-    @Index(name = "idx_created_at", columnList = "createdAt"),
-    @Index(name = "idx_deleted_at", columnList = "deletedAt")
+    @Index(name = "idx_created_at", columnList = "created_at"),
+    @Index(name = "idx_deleted_at", columnList = "deleted_at")
 })
 @Where(clause = "deleted_at IS NULL")
 public class ScheduledTask {
@@ -34,7 +33,8 @@ public class ScheduledTask {
 
     @NotBlank
     @Column(name = "idempotency_key", nullable = false)
-    private String idempotencyKey;
+    private String idempotencyKey = "default";
+
 
     @NotNull
     @Column(name = "created_at", nullable = false)
@@ -61,10 +61,10 @@ public class ScheduledTask {
     // Constructors
     public ScheduledTask() {}
 
-    public ScheduledTask(String ssuuid, String message, String idempotencyKey) {
+    public ScheduledTask(String ssuuid, String message) {
         this.ssuuid = ssuuid;
         this.message = message;
-        this.idempotencyKey = idempotencyKey;
+       
     }
 
     // Getters and Setters
@@ -99,6 +99,8 @@ public class ScheduledTask {
     public void setIdempotencyKey(String idempotencyKey) {
         this.idempotencyKey = idempotencyKey;
     }
+
+
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
@@ -157,6 +159,7 @@ public class ScheduledTask {
     public void incrementExecutionCount() {
         this.executionCount++;
         this.lastExecutedAt = LocalDateTime.now();
+        // Keep status transitions controlled by the service; entity stays simple.
     }
 
     public boolean isDeleted() {
@@ -167,13 +170,28 @@ public class ScheduledTask {
         return !isDeleted() && this.status == TaskStatus.PENDING;
     }
 
+    @PrePersist
+    protected void onCreate() {
+        if (this.createdAt == null) {
+            this.createdAt = LocalDateTime.now();
+        }
+        if (this.idempotencyKey == null || this.idempotencyKey.isBlank()) {
+            this.idempotencyKey = "default";
+        }
+        if (this.status == null) {
+            this.status = TaskStatus.PENDING;
+        }
+        if (this.executionCount == null) {
+            this.executionCount = 0;
+        }
+    }
+
     @Override
     public String toString() {
         return "ScheduledTask{" +
                 "id=" + id +
                 ", ssuuid='" + ssuuid + '\'' +
                 ", message='" + message + '\'' +
-                ", idempotencyKey='" + idempotencyKey + '\'' +
                 ", status=" + status +
                 ", executionCount=" + executionCount +
                 '}';

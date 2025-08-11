@@ -5,6 +5,8 @@ import com.scheduler.scheduler_engine.domain.entity.TaskStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -15,8 +17,8 @@ import java.util.UUID;
 public interface ScheduledTaskRepository extends JpaRepository<ScheduledTask, UUID> {
 
     
-    Optional<ScheduledTask> findBySsuuidAndIdempotencyKeyAndDeletedAtIsNull(
-            String ssuuid, String idempotencyKey);
+    Optional<ScheduledTask> findBySsuuidAndDeletedAtIsNull(
+            String ssuuid);
 
    
     List<ScheduledTask> findBySsuuidAndDeletedAtIsNullOrderByCreatedAtDesc(String ssuuid);
@@ -31,7 +33,7 @@ public interface ScheduledTaskRepository extends JpaRepository<ScheduledTask, UU
     long countByStatusAndDeletedAtIsNull(TaskStatus status);
 
    
-    boolean existsBySsuuidAndIdempotencyKeyAndDeletedAtIsNull(String ssuuid, String idempotencyKey);
+    boolean existsBySsuuidAndDeletedAtIsNull(String ssuuid);
 
    
     long countBySsuuidAndDeletedAtIsNull(String ssuuid);
@@ -42,4 +44,10 @@ public interface ScheduledTaskRepository extends JpaRepository<ScheduledTask, UU
    
     @Query("SELECT t FROM ScheduledTask t WHERE t.status = 'PENDING' AND t.deletedAt IS NULL AND t.createdAt < :threshold")
     List<ScheduledTask> findStaleTasks(@Param("threshold") java.time.LocalDateTime threshold);
+
+    // Pagination queries
+    @Query("SELECT t FROM ScheduledTask t WHERE (:ssuuid IS NULL OR t.ssuuid = :ssuuid) AND (:status IS NULL OR t.status = :status) AND t.deletedAt IS NULL ORDER BY t.createdAt DESC")
+    Page<ScheduledTask> findAllPaginated(@Param("ssuuid") String ssuuid,
+                                         @Param("status") TaskStatus status,
+                                         Pageable pageable);
 }

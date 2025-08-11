@@ -6,7 +6,6 @@ import com.scheduler.scheduler_engine.domain.repository.ScheduledTaskRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +22,9 @@ public class TaskExecutionService {
     @Value("${scheduler.task.max-retries:3}")
     private int maxRetries;
 
+    @Value("${scheduler.task.max-executions:10}")
+    private int maxExecutions;
+
     @Value("${scheduler.task.cleanup-enabled:true}")
     private boolean cleanupEnabled;
 
@@ -30,7 +32,6 @@ public class TaskExecutionService {
     private long cleanupInterval;
 
   
-    @Scheduled(fixedDelay = 5000)
     @Transactional
     public void executePendingTasks() {
         try {
@@ -58,7 +59,6 @@ public class TaskExecutionService {
         }
     }
 
-    @Scheduled(fixedDelay = 3600000) // 1 hour
     @Transactional
     public void cleanupOldTasks() {
         if (!cleanupEnabled) {
@@ -90,7 +90,7 @@ public class TaskExecutionService {
         log.info("Executing task: taskId={}, ssuuid={}, message={}", 
                 task.getId(), task.getSsuuid(), task.getMessage());
 
-        // Mark task as running
+        // Mark task as running for this cycle
         task.setStatus(TaskStatus.RUNNING);
         scheduledTaskRepository.save(task);
 
@@ -98,12 +98,21 @@ public class TaskExecutionService {
             // Simulate task execution - in real implementation, this would be the actual task logic
             performTaskExecution(task);
             
-            // Mark task as completed
-            task.setStatus(TaskStatus.COMPLETED);
+            // One cycle completed; increment count and transition state
             task.incrementExecutionCount();
-            scheduledTaskRepository.save(task);
+            if (task.getExecutionCount() >= maxExecutions) {
+                task.setStatus(TaskStatus.COMPLETED);
+                scheduledTaskRepository.save(task);
+                log.info("Task marked COMPLETED: taskId={}, totalExecutions={}",
+                        task.getId(), task.getExecutionCount());
+            } else {
+                task.setStatus(TaskStatus.PENDING);
+                scheduledTaskRepository.save(task);
+                log.debug("Task scheduled for next execution: taskId={}, executionCount={}/{})",
+                        task.getId(), task.getExecutionCount(), maxExecutions);
+            }
             
-            log.info("Task completed successfully: taskId={}, executionCount={}", 
+            log.info("Task cycle succeeded: taskId={}, executionCount={}",
                     task.getId(), task.getExecutionCount());
 
         } catch (Exception e) {
