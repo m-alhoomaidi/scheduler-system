@@ -2,31 +2,51 @@ syntax = "proto3";
 
 package scheduler;
 
+import "google/protobuf/timestamp.proto";
+
+option java_multiple_files = true;
+option java_package = "com.scheduler.scheduler_engine.proto.v1";
+option java_outer_classname = "TaskEngineProto";
+
 service TaskEngine {
   rpc RegisterTask (RegisterTaskRequest) returns (RegisterTaskResponse);
-  rpc DeleteTask (DeleteTaskRequest) returns (DeleteTaskResponse);
-  rpc Ping (PingRequest) returns (PingResponse);
+  rpc DeleteTask   (DeleteTaskRequest)   returns (DeleteTaskResponse);
+  rpc Ping         (PingRequest)         returns (PingResponse);
+  rpc ListTasks    (ListTasksRequest)    returns (ListTasksResponse);
 }
 
 message RegisterTaskRequest {
-  string ssuuid = 1;
-  string message = 2;
-  string idempotencyKey = 3;
+  string ssuuid          = 1;
+  string message         = 2;
 }
-
-message RegisterTaskResponse {
-  string taskId = 1;
-}
-
-message DeleteTaskRequest {
-  string taskId = 1;
-}
-
-message DeleteTaskResponse {
-  bool ok = 1;
-}
-
+message RegisterTaskResponse { string task_id = 1; }
+message DeleteTaskRequest    { string task_id = 1; }
+message DeleteTaskResponse   { bool deleted   = 1; }
 message PingRequest {}
-message PingResponse { string message = 1; }
+message PingResponse { string status = 1; }
 
+message ListTasksRequest {
+  int32 page       = 1;  // 0-based page index
+  int32 page_size  = 2;  // items per page
+  string ssuuid    = 3;  // optional filter
+  string status    = 4;  // optional filter, e.g., PENDING/RUNNING/COMPLETED/FAILED/DELETED
+}
 
+message TaskItem {
+  string id                        = 1;
+  string ssuuid                    = 2;
+  string message                   = 3;
+  string status                    = 4;
+  int32  execution_count           = 5;
+  google.protobuf.Timestamp created_at      = 6;
+  google.protobuf.Timestamp updated_at      = 7;
+  google.protobuf.Timestamp last_executed_at= 8;
+}
+
+message ListTasksResponse {
+  repeated TaskItem tasks = 1;
+  int64 total             = 2;  // total items across all pages
+  int32 page              = 3;  // current page index
+  int32 page_size         = 4;  // current page size
+  bool has_next           = 5;  // whether another page exists
+}
