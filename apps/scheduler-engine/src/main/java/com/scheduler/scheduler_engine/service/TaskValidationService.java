@@ -1,23 +1,18 @@
 package com.scheduler.scheduler_engine.service;
-
 import com.scheduler.scheduler_engine.config.SchedulerConfig;
 import com.scheduler.scheduler_engine.domain.repository.ScheduledTaskRepository;
 import com.scheduler.scheduler_engine.logger.AppLogger;
-
 import org.springframework.stereotype.Service;
-
 import java.util.regex.Pattern;
 
 @Service
 public class TaskValidationService {
 
     private final SchedulerConfig config;
-    private final ScheduledTaskRepository repository;
     private final AppLogger log;
 
     public TaskValidationService(SchedulerConfig config, ScheduledTaskRepository repository, AppLogger log) {
         this.config = config;
-        this.repository = repository;
         this.log = log;
     }
 
@@ -32,7 +27,7 @@ public class TaskValidationService {
 
         validateSsuuid(ssuuid);
         validateMessage(message, ssuuid);
-        // Note: Users can create multiple tasks, so no limit per ssuuid
+        
     }
 
     private void validateSsuuid(String ssuuid) {
@@ -65,14 +60,7 @@ public class TaskValidationService {
         }
     }
 
-    private void validateTaskLimit(String ssuuid) {
-        long existingTasks = repository.countBySsuuidAndDeletedAtIsNull(ssuuid);
-        int maxTasks = config.getSecurity().getMaxTasksPerSsuuid();
-        
-        if (existingTasks >= maxTasks) {
-            throw new SecurityException("Too many tasks for SSUUID: " + ssuuid + " (max " + maxTasks + ")");
-        }
-    }
+
 
     public void auditTaskOperation(String operation, String ssuuid, String details) {
         if (config.getSecurity().isEnableAuditLogging()) {

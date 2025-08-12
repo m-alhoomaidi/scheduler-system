@@ -1,8 +1,10 @@
 spring:
   application:
     name: scheduler-engine
+  docker:
+    compose:
+      enabled: false
   datasource:
-    # url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://vrtx-pg:5435/scheduler-engine}
     url: ${SPRING_DATASOURCE_URL:?SPRING_DATASOURCE_URL must be set}
     username: ${SPRING_DATASOURCE_USERNAME:?SPRING_DATASOURCE_USERNAME must be set}
     password: ${SPRING_DATASOURCE_PASSWORD:?SPRING_DATASOURCE_PASSWORD must be set}

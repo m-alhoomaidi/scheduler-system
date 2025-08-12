@@ -1,6 +1,5 @@
 package com.scheduler.scheduler_engine.service;
 
-import com.scheduler.scheduler_engine.config.SchedulerConfig;
 import com.scheduler.scheduler_engine.domain.entity.ScheduledTask;
 import com.scheduler.scheduler_engine.logger.AppLogger;
 
@@ -13,17 +12,15 @@ import java.util.concurrent.ThreadLocalRandom;
 @Service
 public class TaskRetryService {
 
-    private final SchedulerConfig config;
     private final AppLogger log;
 
-    public TaskRetryService(SchedulerConfig config, AppLogger log) {
-        this.config = config;
+    public TaskRetryService( AppLogger log) {
         this.log = log;
     }
 
     public boolean shouldRetry(ScheduledTask task, Exception error) {
-        // For scheduled tasks, we generally don't want permanent failures
-        // Instead, we log the error and reschedule
+      
+        //TODO: Future implementatoin for the failure tasks
         return true;
     }
 

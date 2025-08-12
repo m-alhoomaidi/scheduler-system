@@ -39,7 +39,7 @@ export class TaskController {
 
   @Post()
   @JwtAuth()
-  // @UseInterceptors(IdempotencyInterceptor)
+  @UseInterceptors(IdempotencyInterceptor)
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({
     summary: 'Create a scheduled task (idempotent with Idempotency-Key header)',

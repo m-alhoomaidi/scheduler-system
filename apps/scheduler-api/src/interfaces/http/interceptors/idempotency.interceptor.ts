@@ -21,14 +21,11 @@ export class IdempotencyInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const req = context.switchToHttp().getRequest<AuthenticatedRequest>();
 
-    this.logger.debug('start idemptoncy');
 
-    // ---------- skip GET/HEAD/OPTIONS or @SkipIdempotency -------------
     if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
       return next.handle();
     }
 
-    // ---------- idempotency key ----------
     const key =
       req.body && typeof req.body === 'object' && 'requestId' in req.body
         ? String(req.body.requestId)
@@ -36,19 +33,11 @@ export class IdempotencyInterceptor implements NestInterceptor {
     this.logger.debug('requestId', { key });
     if (!key) return next.handle();
 
-    // ---------- 1) check cache, maybe short‑circuit ----------
     return from(this.idempotencyRepo.findByRequestId(key)).pipe(
       switchMap((idempotency) => {
-        this.logger.debug('find', { idempotency });
         if (idempotency) {
-          this.logger.log(`Idempotency hit for ${key}`, {
-            meta: {
-              idempotencyKey: key,
-              method: req.method,
-              path: req.path,
-            },
-          });
-          return of(idempotency.response); // ← immediately return cached body
+         
+          return of(JSON.parse(idempotency.response)); 
         }
 
         return next.handle().pipe(
@@ -60,8 +49,8 @@ export class IdempotencyInterceptor implements NestInterceptor {
               ssuuid,
               req.method,
               req.path,
-              req.body,
-              data,
+              JSON.stringify(req.body),
+              JSON.stringify(data),
             );
             this.idempotencyRepo.create(record).catch((err) => {
               const error = err as Error;

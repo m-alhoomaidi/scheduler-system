@@ -27,11 +27,12 @@ public class TaskExecutionService {
     private final AppLogger log;
     private final Executor executorService;
 
-    public TaskExecutionService(ScheduledTaskRepository scheduledTaskRepository,
-                               SchedulerConfig config,
-                               TaskExecutor taskExecutor,
-                               TaskRetryService retryService,
-                               AppLogger log) {
+    public TaskExecutionService(
+        ScheduledTaskRepository scheduledTaskRepository,
+        SchedulerConfig config,
+        TaskExecutor taskExecutor,
+        TaskRetryService retryService,
+        AppLogger log) {
         this.scheduledTaskRepository = scheduledTaskRepository;
         this.config = config;
         this.taskExecutor = taskExecutor;
@@ -49,21 +50,21 @@ public class TaskExecutionService {
 
   
     @Transactional
-    public void executePendingTasks() {
+    public void executePendingTasks(long threadId) {
         try {
             LocalDateTime now = LocalDateTime.now();
             List<ScheduledTask> pendingTasks = scheduledTaskRepository.findPendingTasksForExecution(now);
             
             if (pendingTasks.isEmpty()) {
-                return; // Silent - no need to log when no tasks are due
+                log.info("No Found pending task to execute on thread: {}", threadId);
+                return; 
             }
 
-                            log.info("\u001B[32m⏰ Found {} tasks due for execution\u001B[0m", pendingTasks.size());
+            log.info("\u001B[32m⏰ Found {} tasks due for execution on thread: {}\u001B[0m", pendingTasks.size(), threadId);
 
-            // Limit concurrent executions for safety
+            
             int maxConcurrent = Math.min(pendingTasks.size(), config.getTask().getMaxConcurrentTasks());
             
-            // Execute tasks in parallel with proper error handling
             List<CompletableFuture<Void>> futures = pendingTasks.stream()
                 .limit(maxConcurrent)
                 .map(task -> CompletableFuture.runAsync(() -> {
@@ -77,7 +78,7 @@ public class TaskExecutionService {
                 }, executorService))
                 .toList();
 
-            // Don't block - let tasks execute asynchronously
+            
             CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
                 .whenComplete((result, throwable) -> {
                     if (throwable != null) {

@@ -59,14 +59,14 @@ public class SystemScheduler implements InitializingBean, DisposableBean {
         CronExpression cron = CronExpression.parse(executionCronExpression);
         this.executionFuture = executor.scheduleWithFixedDelay(() -> {
             try {
-                // Ensure we are on second boundaries per matching
+               
                 ZonedDateTime now = ZonedDateTime.now().withNano(0);
                 ZonedDateTime next = cron.nextExecutionAfter(now.minusSeconds(1));
                 long delayMs = Math.max(0, next.toInstant().toEpochMilli() - now.toInstant().toEpochMilli());
                 if (delayMs > 0) {
                     Thread.sleep(delayMs);
                 }
-                runExecutePendingTasks();
+                runExecutePendingTasks(Thread.currentThread().threadId());
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
             } catch (Throwable t) {
@@ -86,8 +86,8 @@ public class SystemScheduler implements InitializingBean, DisposableBean {
     }
 
     @Transactional
-    protected void runExecutePendingTasks() {
-        taskExecutionService.executePendingTasks();
+    protected void runExecutePendingTasks(long threadId) {
+        taskExecutionService.executePendingTasks(threadId);
     }
 
     @Transactional

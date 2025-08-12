@@ -6,7 +6,8 @@ import jakarta.validation.constraints.NotNull;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.annotations.SQLRestriction;
-
+import com.scheduler.scheduler_engine.scheduling.CronExpression;
+import java.time.ZonedDateTime;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -162,7 +163,7 @@ public class ScheduledTask {
         this.status = status;
     }
 
-    // Business Methods
+    
     public void markAsDeleted() {
         this.deletedAt = LocalDateTime.now();
         this.status = TaskStatus.DELETED;
@@ -171,22 +172,21 @@ public class ScheduledTask {
     public void incrementExecutionCount() {
         this.executionCount++;
         this.lastExecutedAt = LocalDateTime.now();
-        // Keep status transitions controlled by the service; entity stays simple.
     }
 
     public void calculateNextExecutionTime() {
         if (this.cronExpression != null && !this.cronExpression.isBlank()) {
             try {
-                com.scheduler.scheduler_engine.scheduling.CronExpression cron = 
+                CronExpression cron = 
                     com.scheduler.scheduler_engine.scheduling.CronExpression.parse(this.cronExpression);
-                java.time.ZonedDateTime next = cron.nextExecutionAfter(java.time.ZonedDateTime.now());
+                    ZonedDateTime next = cron.nextExecutionAfter(java.time.ZonedDateTime.now());
                 this.nextExecutionTime = next.toLocalDateTime();
             } catch (Exception e) {
-                // Fallback: schedule for 5 seconds from now if CRON parsing fails
+                
                 this.nextExecutionTime = LocalDateTime.now().plusSeconds(5);
             }
         } else {
-            // Default: schedule for 5 seconds from now
+            
             this.nextExecutionTime = LocalDateTime.now().plusSeconds(5);
         }
     }
