@@ -11,7 +11,7 @@ services:
     ports:
       - "27018:27017"
     volumes:
-      - mongo-data:/data/db
+      - vrtx-mongo-data:/data/db
     restart: unless-stopped  # always restarts
 
   vrtx-redis:
@@ -21,7 +21,7 @@ services:
     ports:
       - "6380:6379"  # use 6380 to avoid conflict with any running container
     volumes:
-      - redis-data:/data
+      - vrtx-redis-data:/data
     restart: unless-stopped
    
   vrtx-pg:
@@ -30,11 +30,11 @@ services:
     environment:
       POSTGRES_USER: vrtx
       POSTGRES_PASSWORD: vrtx
-      POSTGRES_DB: scheduler-api
+      POSTGRES_DB: scheduler-engine
     ports:
       - "5435:5432"
     volumes:
-      - pg-data:/var/lib/postgresql/data
+      - vrtx-pg-data:/var/lib/postgresql/data
     restart: unless-stopped
   
   scheduler-api:
@@ -76,9 +76,14 @@ services:
       dockerfile: Dockerfile.scheduler-engine
     image: scheduler-engine:latest
     container_name: scheduler-engine
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://vrtx-pg:5435/scheduler-engine
     depends_on:
       - vrtx-pg
     restart: unless-stopped
+
+# for persistence 
 volumes:
-  mongo-data:
-  redis-data:
+  vrtx-mongo-data:
+  vrtx-redis-data:
+  vrtx-pg-data:

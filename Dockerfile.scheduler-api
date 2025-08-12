@@ -38,6 +38,7 @@ ENV NODE_ENV=production
 COPY --from=builder /app/apps/scheduler-api/dist ./dist
 COPY --from=builder /app/apps/scheduler-api/i18n ./i18n
 COPY --from=builder /app/apps/scheduler-api/scripts ./scripts
+COPY --from=builder /app/libs/proto ./libs/proto
 COPY apps/scheduler-api/package.json ./package.json
 COPY apps/scheduler-api/yarn.lock ./yarn.lock
 

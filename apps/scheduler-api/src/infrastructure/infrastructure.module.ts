@@ -17,6 +17,8 @@ import { ScheduledTaskQueueRepositoryPort } from '@/domain/ports';
 import { GrpcModule } from './grpc/grpc.module';
 import { TaskEngineGrpcClient } from './grpc/task-engine.client';
 import { TaskEnginePort } from '@/domain/ports/task-engine.port';
+import { IdempotencyPort } from '@/domain/ports/idempotency.port';
+import { IdempotencyRepository } from './persistence/mongo/repositories/idempotency.repository';
 
 @Global()
 @Module({
@@ -99,6 +101,10 @@ import { TaskEnginePort } from '@/domain/ports/task-engine.port';
     {
       provide: TaskEnginePort,
       useExisting: TaskEngineGrpcClient,
+    },
+    {
+      provide:IdempotencyPort,
+      useClass:IdempotencyRepository
     }
     
 
@@ -107,7 +113,7 @@ import { TaskEnginePort } from '@/domain/ports/task-engine.port';
     MongoPersistenceModule,
     LoggerModule,
     'SessionService',
-    AuthModule,
+    AuthModule,IdempotencyPort,
     UserRepositoryPort,
     AuthService,
     ApiLogRepositoryPort,

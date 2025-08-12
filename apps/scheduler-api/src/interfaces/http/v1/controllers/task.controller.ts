@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Headers, HttpCode, HttpStatus, Param, Post, Query, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Headers, HttpCode, HttpStatus, Param, Post, Query, Req, UseInterceptors } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { JwtAuth } from '../../decorators/jwt-auth.decorator';
 import { CreateTaskDto } from '../dto/create-task.dto';
@@ -6,6 +6,7 @@ import { PaginationDto } from '../dto/pagination.dto';
 import { CreateTaskUseCase } from '@/application/use-cases/create-task.use-case';
 import { DeleteTaskUseCase } from '@/application/use-cases/delete-task.use-case';
 import { ListTasksUseCase } from '@/application/use-cases/list-tasks.use-case';
+import { IdempotencyInterceptor } from '../../interceptors/idempotency.interceptor';
 
 @ApiTags('tasks')
 @ApiBearerAuth('jwt')
@@ -19,6 +20,7 @@ export class TaskController {
 
   @Post()
   @JwtAuth()
+  @UseInterceptors(IdempotencyInterceptor)
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({ summary: 'Create a scheduled task (idempotent with Idempotency-Key header)' })
   async create(

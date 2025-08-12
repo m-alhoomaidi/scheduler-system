@@ -3,10 +3,11 @@ import { IdempotencyPort } from "@domain/ports/idempotency.port";
 import { IdempotencyDocument } from "../models/idempotency.schema";
 import { Model } from "mongoose";
 import { IdempotencyEntity } from "@/domain/entities/idempotency.entity";
+import { InjectModel } from "@nestjs/mongoose";
 
 @Injectable()
 export class IdempotencyRepository extends IdempotencyPort {
-    constructor(private readonly idempotencyModel: Model<IdempotencyDocument>) {
+    constructor(@InjectModel('Idempotency') private readonly idempotencyModel:Model<IdempotencyDocument>,) {
         super();
     }
 

@@ -1,9 +1,11 @@
 export class IdempotencyEntity {
-    requestId: string;
-    ssuuid: string;
-    method: string;
-    path: string;
-    body: string;
-    response: string;
-    createdAt: Date;
+   constructor(
+    public readonly requestId: string,
+    public readonly ssuuid: string,
+    public readonly method: string,
+    public readonly path: string,
+    public readonly body: string,
+    public readonly response: string,
+    public readonly createdAt: Date=new Date(),
+   ) {}
 }

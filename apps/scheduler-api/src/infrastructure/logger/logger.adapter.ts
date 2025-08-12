@@ -11,7 +11,7 @@ export class LoggerNestAdapter implements LoggerPort {
     if (!this.contextMeta && !meta) return undefined;
     if (!this.contextMeta) return meta;
     if (!meta) return this.contextMeta;
-    return { ...this.contextMeta, ...meta };
+    return meta
   }
 
   private getContextName(): string {
