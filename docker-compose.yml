@@ -73,7 +73,7 @@ services:
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
       OTEL_SERVICE_NAME: scheduler-api
     ports:
-      - "3001:3000"
+      - "3000:3000"  # api port
     depends_on:
       - vrtx-mongodb
       - vrtx-redis
@@ -89,7 +89,9 @@ services:
     image: scheduler-engine:latest
     container_name: scheduler-engine
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://vrtx-pg:5432/scheduler-api
+      SPRING_DATASOURCE_URL: jdbc:postgresql://vrtx-pg:5432/scheduler-engine
+      SPRING_DATASOURCE_USERNAME: vrtx
+      SPRING_DATASOURCE_PASSWORD: vrtx
     ports:
       - "8081:8081"
     depends_on:
@@ -102,6 +104,7 @@ services:
   jaeger:
     image: jaegertracing/all-in-one:latest
     container_name: jaeger
+    user: "0:0"
     environment:
       - SPAN_STORAGE_TYPE=badger
       - BADGER_EPHEMERAL=false
