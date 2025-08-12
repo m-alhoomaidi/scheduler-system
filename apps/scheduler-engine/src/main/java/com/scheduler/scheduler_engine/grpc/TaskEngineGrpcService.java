@@ -4,6 +4,8 @@ import com.scheduler.scheduler_engine.domain.entity.ScheduledTask;
 import com.scheduler.scheduler_engine.domain.repository.ScheduledTaskRepository;
 import com.scheduler.scheduler_engine.service.TaskValidationService;
 import com.scheduler.scheduler_engine.proto.v1.*;
+import com.scheduler.scheduler_engine.logger.AppLogger;
+
 import com.scheduler.scheduler_engine.domain.entity.TaskStatus;
 import java.time.format.DateTimeFormatter;
 import io.grpc.Status;
@@ -13,43 +15,37 @@ import lombok.extern.slf4j.Slf4j;
 import net.devh.boot.grpc.server.service.GrpcService;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Optional;
 import java.util.UUID;
 
+
+
 @GrpcService
-@RequiredArgsConstructor
-@Slf4j
+
 public class TaskEngineGrpcService extends TaskEngineGrpc.TaskEngineImplBase {
 
+    private final AppLogger log;
     private final ScheduledTaskRepository scheduledTaskRepository;
     private final TaskValidationService validationService;
 
-    
+    public TaskEngineGrpcService(AppLogger log, ScheduledTaskRepository scheduledTaskRepository, TaskValidationService validationService) {
+        this.log = log;
+        this.scheduledTaskRepository = scheduledTaskRepository;
+        this.validationService = validationService;
+    }
+
+   
     @Override
     @Transactional
     public void registerTask(RegisterTaskRequest request, StreamObserver<RegisterTaskResponse> responseObserver) {
         try {
-            // Security validation
             validationService.validateTaskCreation(request.getSsuuid(), request.getMessage());
             
-            // Default CRON expression: every 5 seconds
             String cronExpression = "*/5 * * * * *";
 
             log.info("RegisterTask: ssuuid={}", request.getSsuuid());
             validationService.auditTaskOperation("REGISTER", request.getSsuuid(), "Task registration attempt");
-
-            Optional<ScheduledTask> existing = scheduledTaskRepository
-                    .findBySsuuidAndDeletedAtIsNull(request.getSsuuid());
-
-            if (existing.isPresent()) {
-                String taskId = existing.get().getId().toString();
-                log.info("RegisterTask idempotent hit: taskId={}", taskId);
-                respond(responseObserver, RegisterTaskResponse.newBuilder().setTaskId(taskId).build());
-                return;
-            }
 
             ScheduledTask toSave = new ScheduledTask(
                     request.getSsuuid(),
@@ -60,18 +56,10 @@ public class TaskEngineGrpcService extends TaskEngineGrpc.TaskEngineImplBase {
             // Calculate initial execution time
             toSave.calculateNextExecutionTime();
 
-            try {
-                ScheduledTask saved = scheduledTaskRepository.save(toSave);
-                log.info("RegisterTask created: taskId={}", saved.getId());
-                validationService.auditTaskOperation("REGISTER_SUCCESS", request.getSsuuid(), "Task created: " + saved.getId());
-                respond(responseObserver, RegisterTaskResponse.newBuilder().setTaskId(saved.getId().toString()).build());
-            } catch (DataIntegrityViolationException dup) {
-                ScheduledTask winner = scheduledTaskRepository
-                            .findBySsuuidAndDeletedAtIsNull(request.getSsuuid())
-                        .orElseThrow(() -> dup); // should exist now
-                log.info("RegisterTask concurrent idempotent hit: taskId={}", winner.getId());
-                respond(responseObserver, RegisterTaskResponse.newBuilder().setTaskId(winner.getId().toString()).build());
-            }
+            ScheduledTask saved = scheduledTaskRepository.save(toSave);
+            log.info("\u001B[32m✅ RegisterTask created: \u001B[36mtaskId={}\u001B[0m", saved.getId());
+            validationService.auditTaskOperation("REGISTER_SUCCESS", request.getSsuuid(), "Task created: " + saved.getId());
+            respond(responseObserver, RegisterTaskResponse.newBuilder().setTaskId(saved.getId().toString()).build());
 
         } catch (SecurityException e) {
             log.warn("RegisterTask security violation: ssuuid={}, error={}", request.getSsuuid(), e.getMessage());

@@ -2,19 +2,24 @@ package com.scheduler.scheduler_engine.service;
 
 import com.scheduler.scheduler_engine.config.SchedulerConfig;
 import com.scheduler.scheduler_engine.domain.repository.ScheduledTaskRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import com.scheduler.scheduler_engine.logger.AppLogger;
+
 import org.springframework.stereotype.Service;
 
 import java.util.regex.Pattern;
 
 @Service
-@RequiredArgsConstructor
-@Slf4j
 public class TaskValidationService {
 
     private final SchedulerConfig config;
     private final ScheduledTaskRepository repository;
+    private final AppLogger log;
+
+    public TaskValidationService(SchedulerConfig config, ScheduledTaskRepository repository, AppLogger log) {
+        this.config = config;
+        this.repository = repository;
+        this.log = log;
+    }
 
     // Security patterns
     private static final Pattern SAFE_STRING_PATTERN = Pattern.compile("^[a-zA-Z0-9\\s\\-_.,!?@#$%^&*()+={}\\[\\]:;\"'<>/\\\\|`~]*$");
@@ -27,7 +32,7 @@ public class TaskValidationService {
 
         validateSsuuid(ssuuid);
         validateMessage(message, ssuuid);
-        validateTaskLimit(ssuuid);
+        // Note: Users can create multiple tasks, so no limit per ssuuid
     }
 
     private void validateSsuuid(String ssuuid) {

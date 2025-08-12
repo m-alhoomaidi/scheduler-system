@@ -1,16 +1,19 @@
 package com.scheduler.scheduler_engine.service;
 
 import com.scheduler.scheduler_engine.domain.entity.ScheduledTask;
-import lombok.extern.slf4j.Slf4j;
+import com.scheduler.scheduler_engine.logger.AppLogger;
+
 import org.springframework.stereotype.Component;
 
-/**
- * Default implementation of TaskExecutor.
- * Handles the core task execution logic with proper logging.
- */
+
 @Component
-@Slf4j
 public class DefaultTaskExecutor implements TaskExecutor {
+
+    private final AppLogger log;
+
+    public DefaultTaskExecutor(AppLogger log) {
+        this.log = log;
+    }
 
     @Override
     public void execute(ScheduledTask task) throws Exception {
@@ -22,9 +25,9 @@ public class DefaultTaskExecutor implements TaskExecutor {
             throw new RuntimeException("Task execution interrupted", e);
         }
 
-        // Main requirement: Log the task message
-        log.info("🚀 SCHEDULED TASK EXECUTION: [{}] {} (every 5 seconds)", 
-                task.getSsuuid(), task.getMessage());
+        // Main requirement: Log the task message with colors
+        log.info("\u001B[35m🚀 SCHEDULED TASK EXECUTION: \u001B[32m[{}] \u001B[36m{} \u001B[33m(CRON: {})\u001B[0m", 
+                task.getSsuuid(), task.getMessage(), task.getCronExpression());
     }
 
     @Override

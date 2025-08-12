@@ -7,7 +7,6 @@
 /* eslint-disable */
 import { GrpcMethod, GrpcStreamMethod } from "@nestjs/microservices";
 import { Observable } from "rxjs";
-import { Timestamp } from "./google/protobuf/timestamp";
 
 export const protobufPackage = "scheduler";
 
@@ -52,9 +51,12 @@ export interface TaskItem {
   message: string;
   status: string;
   executionCount: number;
-  createdAt: Timestamp | undefined;
-  updatedAt: Timestamp | undefined;
-  lastExecutedAt: Timestamp | undefined;
+  /** ISO 8601 format */
+  createdAt: string;
+  /** ISO 8601 format */
+  updatedAt: string;
+  /** ISO 8601 format */
+  lastExecutedAt: string;
 }
 
 export interface ListTasksResponse {

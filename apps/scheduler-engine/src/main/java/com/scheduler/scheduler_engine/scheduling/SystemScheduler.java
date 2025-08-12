@@ -16,13 +16,14 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
+import com.scheduler.scheduler_engine.logger.AppLogger;
+
 @Component
-@Slf4j
 public class SystemScheduler implements InitializingBean, DisposableBean {
     private final TaskExecutionService taskExecutionService;
     private final String executionCronExpression;
     private final long cleanupIntervalMillis;
-
+    private final AppLogger log;
     private ScheduledExecutorService executor;
     private ScheduledFuture<?> executionFuture;
     private ScheduledFuture<?> cleanupFuture;
@@ -30,11 +31,13 @@ public class SystemScheduler implements InitializingBean, DisposableBean {
     public SystemScheduler(
             TaskExecutionService taskExecutionService,
             @Value("${scheduler.task.execution-cron:*/5 * * * * *}") String executionCronExpression,
-            @Value("${scheduler.task.cleanup-interval:3600000}") long cleanupIntervalMillis
+            @Value("${scheduler.task.cleanup-interval:3600000}") long cleanupIntervalMillis,
+            AppLogger log
     ) {
         this.taskExecutionService = Objects.requireNonNull(taskExecutionService);
         this.executionCronExpression = executionCronExpression;
         this.cleanupIntervalMillis = cleanupIntervalMillis;
+        this.log = log;
     }
 
     @Override

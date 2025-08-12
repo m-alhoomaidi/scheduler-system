@@ -17,26 +17,29 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import com.scheduler.scheduler_engine.logger.AppLogger;
+
 @Service
-@Slf4j
 public class TaskExecutionService {
 
     private final ScheduledTaskRepository scheduledTaskRepository;
     private final SchedulerConfig config;
     private final TaskExecutor taskExecutor;
     private final TaskRetryService retryService;
-    
+    private final AppLogger log;
     // Thread pool for parallel task execution - properly configured
     private final Executor executorService;
 
     public TaskExecutionService(ScheduledTaskRepository scheduledTaskRepository,
                                SchedulerConfig config,
                                TaskExecutor taskExecutor,
-                               TaskRetryService retryService) {
+                               TaskRetryService retryService,
+                               AppLogger log) {
         this.scheduledTaskRepository = scheduledTaskRepository;
         this.config = config;
         this.taskExecutor = taskExecutor;
         this.retryService = retryService;
+        this.log = log;
         this.executorService = Executors.newFixedThreadPool(
             config.getExecutor().getThreadPoolSize(),
             r -> {
@@ -58,7 +61,7 @@ public class TaskExecutionService {
                 return; // Silent - no need to log when no tasks are due
             }
 
-            log.info("⏰ Found {} tasks due for execution", pendingTasks.size());
+                            log.info("\u001B[32m⏰ Found {} tasks due for execution\u001B[0m", pendingTasks.size());
 
             // Limit concurrent executions for safety
             int maxConcurrent = Math.min(pendingTasks.size(), config.getTask().getMaxConcurrentTasks());

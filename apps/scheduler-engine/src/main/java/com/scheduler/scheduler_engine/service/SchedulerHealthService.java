@@ -2,23 +2,25 @@ package com.scheduler.scheduler_engine.service;
 
 import com.scheduler.scheduler_engine.domain.entity.TaskStatus;
 import com.scheduler.scheduler_engine.domain.repository.ScheduledTaskRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import com.scheduler.scheduler_engine.logger.AppLogger;
+
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.HashMap;
 
-/**
- * Health monitoring for scheduler system
- */
+
 @Service
-@RequiredArgsConstructor
-@Slf4j
 public class SchedulerHealthService {
 
     private final ScheduledTaskRepository repository;
+    private final AppLogger log;
+
+    public SchedulerHealthService(ScheduledTaskRepository repository, AppLogger log) {
+        this.repository = repository;
+        this.log = log;
+    }
 
     public Map<String, Object> getHealthStatus() {
         Map<String, Object> health = new HashMap<>();

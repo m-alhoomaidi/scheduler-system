@@ -2,22 +2,24 @@ package com.scheduler.scheduler_engine.service;
 
 import com.scheduler.scheduler_engine.config.SchedulerConfig;
 import com.scheduler.scheduler_engine.domain.entity.ScheduledTask;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import com.scheduler.scheduler_engine.logger.AppLogger;
+
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.concurrent.ThreadLocalRandom;
 
-/**
- * Professional retry handling with exponential backoff
- */
+
 @Service
-@RequiredArgsConstructor
-@Slf4j
 public class TaskRetryService {
 
     private final SchedulerConfig config;
+    private final AppLogger log;
+
+    public TaskRetryService(SchedulerConfig config, AppLogger log) {
+        this.config = config;
+        this.log = log;
+    }
 
     public boolean shouldRetry(ScheduledTask task, Exception error) {
         // For scheduled tasks, we generally don't want permanent failures
