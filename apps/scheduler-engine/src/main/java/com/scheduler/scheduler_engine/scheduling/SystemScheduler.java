@@ -1,7 +1,6 @@
 package com.scheduler.scheduler_engine.scheduling;
 
 import com.scheduler.scheduler_engine.service.TaskExecutionService;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,6 +22,7 @@ public class SystemScheduler implements InitializingBean, DisposableBean {
     private final TaskExecutionService taskExecutionService;
     private final String executionCronExpression;
     private final long cleanupIntervalMillis;
+    private final boolean schedulerEnabled;
     private final AppLogger log;
     private ScheduledExecutorService executor;
     private ScheduledFuture<?> executionFuture;
@@ -32,16 +32,23 @@ public class SystemScheduler implements InitializingBean, DisposableBean {
             TaskExecutionService taskExecutionService,
             @Value("${scheduler.task.execution-cron:*/5 * * * * *}") String executionCronExpression,
             @Value("${scheduler.task.cleanup-interval:3600000}") long cleanupIntervalMillis,
+            @Value("${scheduler.enabled:true}") boolean schedulerEnabled,
             AppLogger log
     ) {
         this.taskExecutionService = Objects.requireNonNull(taskExecutionService);
         this.executionCronExpression = executionCronExpression;
         this.cleanupIntervalMillis = cleanupIntervalMillis;
+        this.schedulerEnabled = schedulerEnabled;
         this.log = log;
     }
 
     @Override
     public void afterPropertiesSet() {
+        if (!schedulerEnabled) {
+            log.info("Scheduler is disabled, skipping startup");
+            return;
+        }
+        
         this.executor = Executors.newScheduledThreadPool(2, new SchedulerThreadFactory());
         startExecutionLoop();
         startCleanupLoop();

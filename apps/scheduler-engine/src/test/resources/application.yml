@@ -12,9 +12,16 @@ spring:
         dialect: org.hibernate.dialect.H2Dialect
   flyway:
     locations: classpath:db/testmigration
+
 grpc:
+  server:
+    enabled: false  # Completely disable gRPC server in tests
   client:
     task-engine:
       address: "static://localhost:50051"
       enable-keep-alive: true
       keep-alive-without-stream: true
+
+# Disable scheduler during tests
+scheduler:
+  enabled: false
