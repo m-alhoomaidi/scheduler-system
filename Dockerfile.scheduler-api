@@ -1,0 +1,55 @@
+
+FROM node:20-bullseye-slim AS deps
+WORKDIR /app/apps/scheduler-api
+
+COPY apps/scheduler-api/package.json ./package.json
+COPY apps/scheduler-api/yarn.lock ./yarn.lock
+
+# Install deps without running postinstall (since src doesn't exist yet)
+RUN yarn install --frozen-lockfile --ignore-scripts
+
+
+FROM node:20-bullseye-slim AS builder
+WORKDIR /app/apps/scheduler-api
+
+
+
+COPY --from=deps /app/apps/scheduler-api/node_modules ./node_modules
+
+COPY apps/scheduler-api/tsconfig*.json ./
+COPY apps/scheduler-api/nest-cli.json ./
+COPY apps/scheduler-api/src ./src
+COPY apps/scheduler-api/i18n ./i18n
+COPY apps/scheduler-api/scripts ./scripts
+COPY apps/scheduler-api/package.json ./package.json
+
+COPY libs/proto /app/libs/proto
+
+# Rebuild grpc-tools to ensure binaries work in this environment
+RUN cd node_modules/grpc-tools && npm run install && cd ../.. && \
+    yarn gen:proto && \
+    yarn build
+
+
+FROM node:20-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+
+COPY --from=builder /app/apps/scheduler-api/dist ./dist
+COPY --from=builder /app/apps/scheduler-api/i18n ./i18n
+COPY --from=builder /app/apps/scheduler-api/scripts ./scripts
+COPY --from=builder /app/libs/proto ./libs/proto
+COPY apps/scheduler-api/package.json ./package.json
+COPY apps/scheduler-api/yarn.lock ./yarn.lock
+
+
+COPY apps/scheduler-api/docker-entrypoint.sh ./docker-entrypoint.sh
+
+RUN chmod +x ./docker-entrypoint.sh
+
+RUN yarn install --frozen-lockfile --production --ignore-scripts && yarn cache clean
+
+EXPOSE 3000
+ENTRYPOINT ["./docker-entrypoint.sh"]
+
+

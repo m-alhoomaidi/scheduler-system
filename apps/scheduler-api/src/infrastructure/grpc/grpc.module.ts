@@ -13,18 +13,26 @@ import { TaskEngineGrpcClient } from './task-engine.client';
       {
         name: 'TASK_ENGINE_GRPC',
         imports: [ConfigModule],
-        useFactory: (cfg: ConfigService) => {
+        useFactory: (configService: ConfigService) => {
           const candidates = [
+            // for local development
             join(process.cwd(), '../../libs/proto/scheduler.proto'),
-          
+            // for docker
+            join(process.cwd(), 'libs/proto/scheduler.proto'),
           ];
-          const protoPath = candidates.find((p) => existsSync(p)) ?? candidates[0];
+
+          const protoPath = candidates.find((p) => existsSync(p));
+
+          if (!protoPath) {
+            throw new Error('Could not find scheduler.proto file');
+          }
+
           return {
             transport: Transport.GRPC,
             options: {
               package: 'scheduler',
               protoPath,
-              url: cfg.get<string>('ENGINE_GRPC_URL', '0.0.0.0:50051'),
+              url: configService.get('ENGINE_GRPC_URL'),
             },
           };
         },
@@ -36,5 +44,3 @@ import { TaskEngineGrpcClient } from './task-engine.client';
   exports: [TaskEngineGrpcClient],
 })
 export class GrpcModule {}
-
-

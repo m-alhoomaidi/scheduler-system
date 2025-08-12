@@ -15,14 +15,14 @@ export class LoggerModule {
       providers: [
         { provide: 'LOGGER_OPTIONS', useValue: options ?? {} },
         LoggerProvider,
-        { 
-          provide: LoggerPort, 
+        {
+          provide: LoggerPort,
           useFactory: (p: LoggerProvider, parentClass: object) => {
             const context = parentClass?.constructor?.name || 'App';
             return new LoggerNestAdapter(p, { context });
-          }, 
-          inject: [LoggerProvider, INQUIRER], 
-          scope: Scope.TRANSIENT 
+          },
+          inject: [LoggerProvider, INQUIRER],
+          scope: Scope.TRANSIENT,
         },
       ],
       exports: [LoggerPort],
@@ -30,7 +30,9 @@ export class LoggerModule {
   }
 
   static forRootAsync(options: {
-    useFactory: (...args: any[]) => Promise<LoggerModuleOptions> | LoggerModuleOptions;
+    useFactory: (
+      ...args: any[]
+    ) => Promise<LoggerModuleOptions> | LoggerModuleOptions;
     inject?: any[];
   }): DynamicModule {
     return {
@@ -43,14 +45,14 @@ export class LoggerModule {
           inject: options.inject || [],
         },
         LoggerProvider,
-        { 
-          provide: LoggerPort, 
+        {
+          provide: LoggerPort,
           useFactory: (p: LoggerProvider, parentClass: object) => {
             const context = parentClass?.constructor?.name || 'App';
             return new LoggerNestAdapter(p, { context });
-          }, 
-          inject: [LoggerProvider, INQUIRER], 
-          scope: Scope.TRANSIENT 
+          },
+          inject: [LoggerProvider, INQUIRER],
+          scope: Scope.TRANSIENT,
         },
       ],
       exports: [LoggerPort],

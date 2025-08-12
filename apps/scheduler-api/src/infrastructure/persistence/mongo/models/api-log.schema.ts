@@ -9,7 +9,7 @@ export class ApiLogSchema {
   @Prop({ required: false, default: () => randomUUID() })
   id?: string; // Optional business ID; ensure uniqueness with a UUID
 
-    @Prop({ required: true })
+  @Prop({ required: true })
   ssuuid: string; // scheduler system user unique identifier
 
   @Prop()
@@ -20,7 +20,6 @@ export class ApiLogSchema {
 
   @Prop()
   statusCode: number;
-
 
   @Prop()
   ip?: string;

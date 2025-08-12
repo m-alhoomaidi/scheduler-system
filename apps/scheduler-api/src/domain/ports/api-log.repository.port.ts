@@ -1,4 +1,4 @@
-import { ApiLog } from "../entities";
+import { ApiLog } from '../entities';
 
 export type LogApiRequestParams = {
   ssuuid: string;
@@ -13,15 +13,18 @@ export type LogApiRequestParams = {
 };
 
 export abstract class ApiLogRepositoryPort {
-        abstract log(entry: LogApiRequestParams): Promise<ApiLog>;
+  abstract log(entry: LogApiRequestParams): Promise<ApiLog>;
 
-        abstract findPaginated(options?: {
-          page?: number;
-          limit?: number;
-        }): Promise<{ data: ApiLog[]; total: number }>;
-  
-    abstract findBySSUUID(ssuuid: string, options?: {
+  abstract findPaginated(options?: {
+    page?: number;
+    limit?: number;
+  }): Promise<{ data: ApiLog[]; total: number }>;
+
+  abstract findBySSUUID(
+    ssuuid: string,
+    options?: {
       page?: number;
       limit?: number;
-    }): Promise<{ data: ApiLog[]; total: number }>;
-  }
+    },
+  ): Promise<{ data: ApiLog[]; total: number }>;
+}

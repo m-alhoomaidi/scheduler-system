@@ -2,9 +2,10 @@ spring:
   application:
     name: scheduler-engine
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5434/scheduler_engine}
-    username: ${SPRING_DATASOURCE_USERNAME:postgres}
-    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://vrtx-pg:5435/scheduler-engine}
+    username: ${SPRING_DATASOURCE_USERNAME:vrtx}
+    password: ${SPRING_DATASOURCE_PASSWORD:vrtx}
+    driver-class-name: ${SPRING_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
   jpa:
     hibernate:
       ddl-auto: validate

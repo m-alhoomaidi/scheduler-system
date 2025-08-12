@@ -9,7 +9,7 @@ export class User {
     public username: string,
     public password: string,
     public role: UserRole,
-    public lastLoginAt: Date | null = null, 
+    public lastLoginAt: Date | null = null,
     public lastLoginIp: string | null = null,
     public readonly createdAt: Date,
     public readonly updatedAt: Date,
@@ -22,10 +22,13 @@ export class User {
     this.password = isHashed ? password : this.hashPassword(password);
 
     if (!skipValidation) {
-      if (!this.validateUsername(username)) throw new Error('Username must be between 3 and 20 characters');
+      if (!this.validateUsername(username))
+        throw new Error('Username must be between 3 and 20 characters');
       // Only validate plaintext length when not hashed
-      if (!isHashed && !this.validatePassword(password)) throw new Error('Password must be between 8 and 20 characters');
-      if (!this.validateRole(role)) throw new Error('Role must be USER or ADMIN');
+      if (!isHashed && !this.validatePassword(password))
+        throw new Error('Password must be between 8 and 20 characters');
+      if (!this.validateRole(role))
+        throw new Error('Role must be USER or ADMIN');
     }
   }
 
@@ -33,8 +36,6 @@ export class User {
   hashPassword(password: string): string {
     return crypto.createHash('sha256').update(password).digest('hex');
   }
-  
-
 
   // the core business logic should be in the entity layer, since it's part of the domain
 
@@ -49,5 +50,4 @@ export class User {
   validateRole(role: UserRole): boolean {
     return role === 'USER' || role === 'ADMIN';
   }
-  
 }

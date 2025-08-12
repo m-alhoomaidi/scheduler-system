@@ -11,6 +11,3 @@ export class ListApiLogsUseCase {
     return { ...result, page, limit };
   }
 }
-
-
-

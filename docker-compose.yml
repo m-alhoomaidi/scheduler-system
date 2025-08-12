@@ -1,0 +1,91 @@
+version: '3.8'
+
+services:
+  vrtx-mongodb:
+    image: mongo:5.0
+    container_name: vrtx-mongodb
+    environment:
+      MONGO_INITDB_DATABASE: scheduler-api
+      MONGO_INITDB_ROOT_USERNAME: vrtx
+      MONGO_INITDB_ROOT_PASSWORD: vrtx
+    ports:
+      - "27018:27017"
+    volumes:
+      - vrtx-mongo-data:/data/db
+    restart: unless-stopped  # always restarts
+
+  vrtx-redis:
+    image: redis:7.0-alpine  # light version
+    container_name: vrtx-redis
+    command: ["redis-server", "--requirepass", "vrtx"]
+    ports:
+      - "6380:6379"  # use 6380 to avoid conflict with any running container
+    volumes:
+      - vrtx-redis-data:/data
+    restart: unless-stopped
+   
+  vrtx-pg:
+    image: postgres:15-alpine
+    container_name: vrtx-pg
+    environment:
+      POSTGRES_USER: vrtx
+      POSTGRES_PASSWORD: vrtx
+      POSTGRES_DB: scheduler-engine
+    ports:
+      - "5435:5432"
+    volumes:
+      - vrtx-pg-data:/var/lib/postgresql/data
+    restart: unless-stopped
+  
+  scheduler-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.scheduler-api
+    image: scheduler-api:latest
+    container_name: scheduler-api
+    environment:
+      # MongoDB connection string
+      MONGO_URI: mongodb://vrtx:vrtx@vrtx-mongodb:27017/scheduler-api?authSource=admin
+      # Redis connection string
+      REDIS_URL: redis://:vrtx@vrtx-redis:6379
+      REDIS_HOST: vrtx-redis
+      REDIS_PORT: 6379
+
+
+      # in production, the .env should be inject after the container is created and assigned to the container from k8s secret or vault tools 
+      REDIS_PASSWORD: vrtx
+      # JWT configuration
+      JWT_SECRET: super-secret-jwt-key-change-in-production
+      # gRPC configuration
+      ENGINE_GRPC_URL: scheduler-engine:50051
+      # Swagger documentation
+      SWAGGER_USER: admin
+      SWAGGER_PASS: admin
+      # Application port
+      PORT: 3000
+    ports:
+      - "3001:3000"
+    depends_on:
+      - vrtx-mongodb
+      - vrtx-redis
+    restart: unless-stopped
+
+  scheduler-engine:
+    build:
+      context: .
+      dockerfile: Dockerfile.scheduler-engine
+    image: scheduler-engine:latest
+    container_name: scheduler-engine
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://vrtx-pg:5432/scheduler-api
+    ports:
+      - "8081:8081"
+    depends_on:
+      - vrtx-pg
+    restart: unless-stopped
+
+# for persistence 
+volumes:
+  vrtx-mongo-data:
+  vrtx-redis-data:
+  vrtx-pg-data:

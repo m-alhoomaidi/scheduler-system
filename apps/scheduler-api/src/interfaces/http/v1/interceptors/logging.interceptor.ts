@@ -8,12 +8,23 @@ import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { randomUUID } from 'crypto';
 import { ApiLogRepositoryPort } from '@/domain/ports';
+import { Response } from 'express';
+import { AuthenticatedRequest } from '../types/authenticated-request.interface';
 
-function maskSensitive(obj: any, maxLen = 2048): any {
+function maskSensitive(
+  obj: Record<string, unknown> | undefined,
+  maxLen = 2048,
+): Record<string, unknown> | undefined {
   try {
-    const redactKeys = new Set(['password', 'authorization', 'token', 'accessToken']);
+    const redactKeys = new Set([
+      'password',
+      'authorization',
+      'token',
+      'accessToken',
+    ]);
     const replacer = (_key: string, value: any) => {
-      if (typeof value === 'string' && value.length > 512) return value.slice(0, 512) + '…';
+      if (typeof value === 'string' && value.length > 512)
+        return value.slice(0, 512) + '…';
       return value;
     };
     const cloned = JSON.parse(JSON.stringify(obj ?? {}, replacer));
@@ -38,41 +49,49 @@ export class LoggingInterceptor implements NestInterceptor {
   constructor(private readonly apiLogRepo: ApiLogRepositoryPort) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-    const req = context.switchToHttp().getRequest();
-    const res = context.switchToHttp().getResponse();
+    const req = context.switchToHttp().getRequest<AuthenticatedRequest>();
+    const res = context.switchToHttp().getResponse<Response>();
     const start = Date.now();
 
-    const traceId = req.headers['x-request-id'] || randomUUID();
+    const traceId = (req.headers['x-request-id'] as string) || randomUUID();
     res.setHeader('X-Request-Id', traceId);
 
-    const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip;
+    const ip =
+      (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
+      req.ip;
 
-    const ssuuid = (req.user?.ssuid as string) || 'anonymous';
+    const ssuuid = req.user?.ssuid || 'anonymous';
     const method = req.method;
     const path = req.originalUrl || req.url;
-    const maskedReq = maskSensitive({ headers: req.headers, body: req.body, query: req.query, params: req.params });
+    const maskedReq = maskSensitive({
+      headers: req.headers,
+      body: req.body,
+      query: req.query,
+      params: req.params,
+    });
 
     return next.handle().pipe(
-      tap(async (body) => {
+      tap((body) => {
         const durationMs = Date.now() - start;
         const statusCode = res.statusCode;
-        const maskedRes = maskSensitive(body);
+        const maskedRes = maskSensitive(body as Record<string, unknown>);
 
-        await this.apiLogRepo.log({
-          ssuuid,
-          method,
-          path,
-          statusCode,
-          ip,
-          traceId: String(traceId),
-          request: maskedReq,
-          response: maskedRes,
-          durationMs,
-        });
+        this.apiLogRepo
+          .log({
+            ssuuid,
+            method,
+            path,
+            statusCode,
+            ip,
+            traceId: String(traceId),
+            request: maskedReq,
+            response: maskedRes,
+            durationMs,
+          })
+          .catch((err) => {
+            console.error('Failed to log API call', err);
+          });
       }),
     );
   }
 }
-
-
-

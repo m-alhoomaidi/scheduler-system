@@ -14,5 +14,3 @@ export class DeleteTaskUseCase {
     await this.taskEngine.deleteTask(input.taskId);
   }
 }
-
-
