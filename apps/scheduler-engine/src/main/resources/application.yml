@@ -29,7 +29,13 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: "health,info,prometheus"
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: http://otel-collector:4318/v1/traces
   endpoint:
     health:
       show-details: always

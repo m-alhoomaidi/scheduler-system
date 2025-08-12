@@ -42,6 +42,11 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web-services'
 	implementation 'ai.timefold.solver:timefold-solver-spring-boot-starter'
 
+	// Observability
+	implementation 'io.micrometer:micrometer-tracing-bridge-otel'
+	implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
+	implementation 'io.micrometer:micrometer-registry-prometheus'
+	
 	// gRPC
 	implementation "net.devh:grpc-server-spring-boot-starter:2.15.0.RELEASE"
     implementation "io.grpc:grpc-protobuf:${grpcJavaVersion}"

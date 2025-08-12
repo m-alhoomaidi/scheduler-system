@@ -13,6 +13,8 @@ services:
     volumes:
       - vrtx-mongo-data:/data/db
     restart: unless-stopped  # always restarts
+    networks:
+      - scheduler-network
 
   vrtx-redis:
     image: redis:7.0-alpine  # light version
@@ -23,6 +25,8 @@ services:
     volumes:
       - vrtx-redis-data:/data
     restart: unless-stopped
+    networks:
+      - scheduler-network
    
   vrtx-pg:
     image: postgres:15-alpine
@@ -36,6 +40,8 @@ services:
     volumes:
       - vrtx-pg-data:/var/lib/postgresql/data
     restart: unless-stopped
+    networks:
+      - scheduler-network
   
   scheduler-api:
     build:
@@ -63,12 +69,18 @@ services:
       SWAGGER_PASS: admin
       # Application port
       PORT: 3000
+      # OpenTelemetry
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_SERVICE_NAME: scheduler-api
     ports:
       - "3001:3000"
     depends_on:
       - vrtx-mongodb
       - vrtx-redis
+      - otel-collector
     restart: unless-stopped
+    networks:
+      - scheduler-network
 
   scheduler-engine:
     build:
@@ -82,10 +94,92 @@ services:
       - "8081:8081"
     depends_on:
       - vrtx-pg
+      - otel-collector
     restart: unless-stopped
+    networks:
+      - scheduler-network
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: jaeger
+    ports:
+      - "16686:16686" # Jaeger UI
+      - "14268:14268" # jaeger-collector
+    networks:
+      - scheduler-network
+
+  otel-collector:
+    image: otel/opentelemetry-collector:0.109.0
+    container_name: otel-collector
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./observability/otel-collector/config.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+      - "8888:8888" # Collector metrics
+    depends_on:
+      - jaeger
+    networks:
+      - scheduler-network
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - scheduler-network
+
+  grafana:
+    image: grafana/grafana-oss:latest
+    container_name: grafana
+    ports:
+      - "3002:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana-storage:/var/lib/grafana
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+    networks:
+      - scheduler-network
+
+  loki:
+    image: grafana/loki:2.9.8
+    container_name: loki
+    command: ["-config.file=/etc/loki/loki-config.yml"]
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./observability/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki-data:/loki
+    networks:
+      - scheduler-network
+
+  promtail:
+    image: grafana/promtail:2.9.8
+    container_name: promtail
+    command: ["-config.file=/etc/promtail/config.yml"]
+    volumes:
+      - ./observability/promtail/promtail-config.yml:/etc/promtail/config.yml:ro
+      - /var/log:/var/log
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - loki
+    networks:
+      - scheduler-network
 
 # for persistence 
 volumes:
   vrtx-mongo-data:
   vrtx-redis-data:
   vrtx-pg-data:
+  grafana-storage:
+  loki-data:
+
+networks:
+  scheduler-network:
+    driver: bridge
