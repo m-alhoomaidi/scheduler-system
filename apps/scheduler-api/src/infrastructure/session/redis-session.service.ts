@@ -6,7 +6,7 @@ import { sessionKey } from './redis.utils';
 @Injectable()
 export class RedisSessionService implements SessionService {
   // TODO improve this, (future work) - ttl based user
-  private readonly ttl = 30000; // 
+  private readonly ttl = 300; // 5 minutes
   
 
   constructor(@Inject('REDIS_CLIENT') private readonly client: RedisClient) {}
