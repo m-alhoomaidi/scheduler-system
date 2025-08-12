@@ -77,7 +77,9 @@ services:
     image: scheduler-engine:latest
     container_name: scheduler-engine
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://vrtx-pg:5435/scheduler-engine
+      SPRING_DATASOURCE_URL: jdbc:postgresql://vrtx-pg:5432/scheduler-api
+    ports:
+      - "8081:8081"
     depends_on:
       - vrtx-pg
     restart: unless-stopped
