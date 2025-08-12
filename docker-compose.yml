@@ -102,9 +102,16 @@ services:
   jaeger:
     image: jaegertracing/all-in-one:latest
     container_name: jaeger
+    environment:
+      - SPAN_STORAGE_TYPE=badger
+      - BADGER_EPHEMERAL=false
+      - BADGER_DIRECTORY_VALUE=/badger/data
+      - BADGER_DIRECTORY_KEY=/badger/key
     ports:
       - "16686:16686" # Jaeger UI
       - "14268:14268" # jaeger-collector
+    volumes:
+      - jaeger-storage:/badger
     networks:
       - scheduler-network
 
@@ -140,6 +147,8 @@ services:
       - "3002:3000"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+      - GF_LOG_LEVEL=debug
     volumes:
       - grafana-storage:/var/lib/grafana
       - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
@@ -179,6 +188,7 @@ volumes:
   vrtx-pg-data:
   grafana-storage:
   loki-data:
+  jaeger-storage:
 
 networks:
   scheduler-network:

@@ -32,6 +32,13 @@ public class ScheduledTask {
     private String message;
 
     @NotBlank
+    @Column(name = "cron_expression", nullable = false)
+    private String cronExpression;
+
+    @Column(name = "next_execution_time")
+    private LocalDateTime nextExecutionTime;
+
+    @NotBlank
     @Column(name = "idempotency_key", nullable = false)
     private String idempotencyKey = "default";
 
@@ -61,10 +68,10 @@ public class ScheduledTask {
     // Constructors
     public ScheduledTask() {}
 
-    public ScheduledTask(String ssuuid, String message) {
+    public ScheduledTask(String ssuuid, String message, String cronExpression) {
         this.ssuuid = ssuuid;
         this.message = message;
-       
+        this.cronExpression = cronExpression;
     }
 
     // Getters and Setters
@@ -90,6 +97,22 @@ public class ScheduledTask {
 
     public void setMessage(String message) {
         this.message = message;
+    }
+
+    public String getCronExpression() {
+        return cronExpression;
+    }
+
+    public void setCronExpression(String cronExpression) {
+        this.cronExpression = cronExpression;
+    }
+
+    public LocalDateTime getNextExecutionTime() {
+        return nextExecutionTime;
+    }
+
+    public void setNextExecutionTime(LocalDateTime nextExecutionTime) {
+        this.nextExecutionTime = nextExecutionTime;
     }
 
     public String getIdempotencyKey() {
@@ -160,6 +183,23 @@ public class ScheduledTask {
         this.executionCount++;
         this.lastExecutedAt = LocalDateTime.now();
         // Keep status transitions controlled by the service; entity stays simple.
+    }
+
+    public void calculateNextExecutionTime() {
+        if (this.cronExpression != null && !this.cronExpression.isBlank()) {
+            try {
+                com.scheduler.scheduler_engine.scheduling.CronExpression cron = 
+                    com.scheduler.scheduler_engine.scheduling.CronExpression.parse(this.cronExpression);
+                java.time.ZonedDateTime next = cron.nextExecutionAfter(java.time.ZonedDateTime.now());
+                this.nextExecutionTime = next.toLocalDateTime();
+            } catch (Exception e) {
+                // Fallback: schedule for 5 seconds from now if CRON parsing fails
+                this.nextExecutionTime = LocalDateTime.now().plusSeconds(5);
+            }
+        } else {
+            // Default: schedule for 5 seconds from now
+            this.nextExecutionTime = LocalDateTime.now().plusSeconds(5);
+        }
     }
 
     public boolean isDeleted() {

@@ -40,6 +40,9 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.springframework.boot:spring-boot-starter-web-services'
+	
+	// Jakarta validation
+	implementation 'jakarta.validation:jakarta.validation-api'
 	implementation 'ai.timefold.solver:timefold-solver-spring-boot-starter'
 
 	// Observability
@@ -53,6 +56,10 @@ dependencies {
     implementation "io.grpc:grpc-stub:${grpcJavaVersion}"
     runtimeOnly   "io.grpc:grpc-netty-shaded:${grpcJavaVersion}"
     implementation "io.grpc:grpc-services:${grpcJavaVersion}" // reflection/health services
+    
+    // Protobuf dependencies
+    implementation "com.google.protobuf:protobuf-java:${protobufVersion}"
+    implementation "com.google.protobuf:protobuf-java-util:${protobufVersion}"
 
 
 	// Lombok
@@ -106,7 +113,7 @@ tasks.named('test') {
 sourceSets {
   main {
     proto {
-      srcDir '../../libs/proto'   
+      srcDir '../../libs/proto'
     }
   }
 }
