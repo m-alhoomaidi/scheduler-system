@@ -33,15 +33,15 @@ describe('ApiLogRepository (unit)', () => {
     };
 
     const ModelCtor: any = jest.fn().mockImplementation(() => createdInstance);
-    (ModelCtor as any).find = jest.fn().mockReturnValue(findCursor);
-    (ModelCtor as any).countDocuments = jest.fn().mockResolvedValue(1);
+    ModelCtor.find = jest.fn().mockReturnValue(findCursor);
+    ModelCtor.countDocuments = jest.fn().mockResolvedValue(1);
 
     return { ModelCtor, createdInstance, savedDoc, findCursor };
   }
 
   it('log() creates and returns domain entity', async () => {
     const { ModelCtor, savedDoc } = createModelMock();
-    const repo = new ApiLogRepository(ModelCtor as any);
+    const repo = new ApiLogRepository(ModelCtor);
 
     const res = await repo.log({
       ssuuid: 'u1',
@@ -73,29 +73,29 @@ describe('ApiLogRepository (unit)', () => {
 
   it('findBySSUUID() paginates and maps', async () => {
     const { ModelCtor, findCursor } = createModelMock();
-    const repo = new ApiLogRepository(ModelCtor as any);
+    const repo = new ApiLogRepository(ModelCtor);
 
     const res = await repo.findBySSUUID('u1', { page: 2, limit: 5 });
-    expect((ModelCtor as any).find).toHaveBeenCalledWith({ ssuuid: 'u1' });
+    expect(ModelCtor.find).toHaveBeenCalledWith({ ssuuid: 'u1' });
     expect(findCursor.skip).toHaveBeenCalledWith(5);
     expect(findCursor.limit).toHaveBeenCalledWith(5);
-    expect((ModelCtor as any).countDocuments).toHaveBeenCalledWith({ ssuuid: 'u1' });
+    expect(ModelCtor.countDocuments).toHaveBeenCalledWith({
+      ssuuid: 'u1',
+    });
     expect(res.total).toBe(1);
     expect(res.data.length).toBe(1);
   });
 
   it('findPaginated() paginates and maps', async () => {
     const { ModelCtor, findCursor } = createModelMock();
-    const repo = new ApiLogRepository(ModelCtor as any);
+    const repo = new ApiLogRepository(ModelCtor);
 
     const res = await repo.findPaginated({ page: 3, limit: 10 });
-    expect((ModelCtor as any).find).toHaveBeenCalled();
+    expect(ModelCtor.find).toHaveBeenCalled();
     expect(findCursor.skip).toHaveBeenCalledWith(20);
     expect(findCursor.limit).toHaveBeenCalledWith(10);
-    expect((ModelCtor as any).countDocuments).toHaveBeenCalled();
+    expect(ModelCtor.countDocuments).toHaveBeenCalled();
     expect(res.total).toBe(1);
     expect(res.data.length).toBe(1);
   });
 });
-
-

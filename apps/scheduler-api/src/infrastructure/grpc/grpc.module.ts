@@ -26,7 +26,7 @@ import { TaskEngineGrpcClient } from './task-engine.client';
           if (!protoPath) {
             throw new Error('Could not find scheduler.proto file');
           }
-          
+
           return {
             transport: Transport.GRPC,
             options: {

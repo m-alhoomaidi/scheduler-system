@@ -29,17 +29,16 @@ import { IdempotencyRepository } from './persistence/mongo/repositories/idempote
       inject: [ConfigService],
       useFactory: (config: ConfigService): MongooseModuleOptions => {
         const mongoUri = config.get<string>('MONGO_URI');
-        
+
         if (!mongoUri) {
           throw new Error(
-            'MONGO_URI environment variable is not set. Please set MONGO_URI in your environment variables.'
+            'MONGO_URI environment variable is not set. Please set MONGO_URI in your environment variables.',
           );
         }
 
-
         return {
           uri: mongoUri,
-          
+
           connectionFactory: (connection) => {
             connection.on('connected', () => {
               console.log('MongoDB connected successfully');
@@ -71,29 +70,29 @@ import { IdempotencyRepository } from './persistence/mongo/repositories/idempote
         };
       },
     }),
-    RedisModule.registerAsync() ,
+    RedisModule.registerAsync(),
     AuthModule,
     GrpcModule,
     LoggerModule.forRoot(),
   ],
-  providers:[
+  providers: [
     {
       provide: 'SessionService',
       useClass: RedisSessionService,
-    },  
-    {
-      provide:UserRepositoryPort,
-      useClass:UserRepository
     },
     {
-      provide:AuthService,
-      useClass:JwtAuthService
+      provide: UserRepositoryPort,
+      useClass: UserRepository,
+    },
+    {
+      provide: AuthService,
+      useClass: JwtAuthService,
     },
     {
       provide: ApiLogRepositoryPort,
       useClass: ApiLogRepository,
     },
-   
+
     {
       provide: ScheduledTaskQueueRepositoryPort,
       useClass: ScheduledTaskQueueRepository,
@@ -103,22 +102,21 @@ import { IdempotencyRepository } from './persistence/mongo/repositories/idempote
       useExisting: TaskEngineGrpcClient,
     },
     {
-      provide:IdempotencyPort,
-      useClass:IdempotencyRepository
-    }
-    
-
+      provide: IdempotencyPort,
+      useClass: IdempotencyRepository,
+    },
   ],
   exports: [
     MongoPersistenceModule,
     LoggerModule,
     'SessionService',
-    AuthModule,IdempotencyPort,
+    AuthModule,
+    IdempotencyPort,
     UserRepositoryPort,
     AuthService,
     ApiLogRepositoryPort,
     ScheduledTaskQueueRepositoryPort,
-    TaskEnginePort
+    TaskEnginePort,
   ],
 })
 export class InfrastructureModule {}

@@ -15,12 +15,12 @@ import { LoggingInterceptor } from './v1/interceptors/logging.interceptor';
     UserController,
     TaskController,
     HealthController,
-    LogsController
+    LogsController,
   ],
   providers: [
     {
-      provide: APP_INTERCEPTOR, // nestjs built-in interceptor for all requests 
-      useClass: LoggingInterceptor, // logging interceptor for all requests 
+      provide: APP_INTERCEPTOR, // nestjs built-in interceptor for all requests
+      useClass: LoggingInterceptor, // logging interceptor for all requests
     },
   ],
 })

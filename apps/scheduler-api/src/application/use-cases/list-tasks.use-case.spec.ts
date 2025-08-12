@@ -15,18 +15,24 @@ describe('ListTasksUseCase', () => {
     repo.findBySSUUID.mockResolvedValueOnce({ data: [], total: 0 });
     const uc = new ListTasksUseCase(repo);
     const res = await uc.execute({ ssuuid: 'ss-1' });
-    expect(repo.findBySSUUID).toHaveBeenCalledWith('ss-1', { page: undefined, limit: undefined });
+    expect(repo.findBySSUUID).toHaveBeenCalledWith('ss-1', {
+      page: undefined,
+      limit: undefined,
+    });
     expect(res).toEqual({ data: [], total: 0 });
   });
 
   it('passes page and limit to repository', async () => {
-    repo.findBySSUUID.mockResolvedValueOnce({ data: [{ id: '1' } as any], total: 1 });
+    repo.findBySSUUID.mockResolvedValueOnce({
+      data: [{ id: '1' } as any],
+      total: 1,
+    });
     const uc = new ListTasksUseCase(repo);
     const res = await uc.execute({ ssuuid: 'ss-2', page: 2, limit: 5 });
-    expect(repo.findBySSUUID).toHaveBeenCalledWith('ss-2', { page: 2, limit: 5 });
+    expect(repo.findBySSUUID).toHaveBeenCalledWith('ss-2', {
+      page: 2,
+      limit: 5,
+    });
     expect(res.total).toBe(1);
   });
 });
-
-
-

@@ -52,7 +52,7 @@ describe('RedisAdapter', () => {
 
   it('initializes and disconnects correctly', async () => {
     const client = createClientMock();
-    const adapter = new RedisAdapter(client as any);
+    const adapter = new RedisAdapter(client);
 
     await adapter.onModuleInit();
     expect(client.ping).toHaveBeenCalled();
@@ -71,7 +71,7 @@ describe('RedisAdapter', () => {
   it('get() parses JSON or returns null', async () => {
     const client = createClientMock();
     (client.get as jest.Mock).mockResolvedValueOnce(null);
-    const adapter = new RedisAdapter(client as any);
+    const adapter = new RedisAdapter(client);
 
     await expect(adapter.get('missing')).resolves.toBeNull();
 
@@ -81,18 +81,23 @@ describe('RedisAdapter', () => {
 
   it('set() stringifies and respects ttl', async () => {
     const client = createClientMock();
-    const adapter = new RedisAdapter(client as any);
+    const adapter = new RedisAdapter(client);
 
     await adapter.set('k1', { x: 1 });
     expect(client.set).toHaveBeenCalledWith('k1', JSON.stringify({ x: 1 }));
 
     await adapter.set('k2', { y: 2 }, 30);
-    expect(client.set).toHaveBeenCalledWith('k2', JSON.stringify({ y: 2 }), 'EX', 30);
+    expect(client.set).toHaveBeenCalledWith(
+      'k2',
+      JSON.stringify({ y: 2 }),
+      'EX',
+      30,
+    );
   });
 
   it('del/expire/publish proxy to client', async () => {
     const client = createClientMock();
-    const adapter = new RedisAdapter(client as any);
+    const adapter = new RedisAdapter(client);
 
     await adapter.del('a', 'b');
     expect(client.del).toHaveBeenCalledWith('a', 'b');
@@ -106,7 +111,7 @@ describe('RedisAdapter', () => {
 
   it('subscribe() subscribes and invokes handler on message', async () => {
     const client = createClientMock();
-    const adapter = new RedisAdapter(client as any);
+    const adapter = new RedisAdapter(client);
 
     const handler = jest.fn();
     await adapter.subscribe('news', handler);
@@ -122,6 +127,3 @@ describe('RedisAdapter', () => {
     expect(handler).toHaveBeenCalledWith('hello');
   });
 });
-
-
-

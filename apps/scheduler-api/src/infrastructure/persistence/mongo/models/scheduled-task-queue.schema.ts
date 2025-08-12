@@ -1,5 +1,5 @@
-import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { Document } from "mongoose";
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Document } from 'mongoose';
 
 export type ScheduledTaskQueueDocument = ScheduledTaskQueueSchema & Document;
 
@@ -13,8 +13,6 @@ export class ScheduledTaskQueueSchema {
 
   @Prop({ required: true })
   message: string;
-
- 
 
   @Prop({ type: Object })
   grpcResponse?: any;
@@ -32,4 +30,6 @@ export class ScheduledTaskQueueSchema {
   updatedAt: Date;
 }
 
-export const ScheduledTaskQueueSchemaFactory = SchemaFactory.createForClass(ScheduledTaskQueueSchema);
+export const ScheduledTaskQueueSchemaFactory = SchemaFactory.createForClass(
+  ScheduledTaskQueueSchema,
+);

@@ -24,7 +24,7 @@ export class UserRepository extends UserRepositoryPort {
       doc.createdAt,
       doc.updatedAt,
       doc.deletedAt,
-      { isHashed: true }
+      { isHashed: true },
     );
   }
 
@@ -60,7 +60,11 @@ export class UserRepository extends UserRepositoryPort {
   }
 
   async updateLastLogin(userData: UpdateLastLoginParams): Promise<User | null> {
-    const updated = await this.userModel.findOneAndUpdate({ ssuuid: userData.ssuuid }, userData, { new: true });
+    const updated = await this.userModel.findOneAndUpdate(
+      { ssuuid: userData.ssuuid },
+      userData,
+      { new: true },
+    );
     if (!updated) return null;
     if (!updated.toObject()) return null;
     return this.toDomain(updated.toObject());

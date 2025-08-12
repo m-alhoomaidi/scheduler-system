@@ -9,7 +9,11 @@ import { UnauthorizedException } from '@nestjs/common';
 describe('JwtAuthService', () => {
   let service: JwtAuthService;
 
-  const jwt = { signAsync: jest.fn(), verifyAsync: jest.fn(), decode: jest.fn() } as unknown as jest.Mocked<JwtService>;
+  const jwt = {
+    signAsync: jest.fn(),
+    verifyAsync: jest.fn(),
+    decode: jest.fn(),
+  } as unknown as jest.Mocked<JwtService>;
   const repo: jest.Mocked<UserRepositoryPort> = {
     findByUsername: jest.fn(),
     create: jest.fn() as any,
@@ -60,14 +64,17 @@ describe('JwtAuthService', () => {
 
   it('throws on invalid username', async () => {
     repo.findByUsername.mockResolvedValueOnce(null);
-    await expect(service.verify({ username: 'nope', password: 'x' } as any, '')).rejects.toBeInstanceOf(UnauthorizedException);
+    await expect(
+      service.verify({ username: 'nope', password: 'x' } as any, ''),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
   });
 
   it('validates token true/false', async () => {
-    (jwt.verifyAsync as any) = jest.fn().mockResolvedValueOnce(true).mockRejectedValueOnce(new Error('bad'));
+    (jwt.verifyAsync as any) = jest
+      .fn()
+      .mockResolvedValueOnce(true)
+      .mockRejectedValueOnce(new Error('bad'));
     await expect(service.validateToken('ok')).resolves.toBe(true);
     await expect(service.validateToken('bad')).resolves.toBe(false);
   });
 });
-
-

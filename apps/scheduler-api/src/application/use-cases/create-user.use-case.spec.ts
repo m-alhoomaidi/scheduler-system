@@ -31,12 +31,15 @@ describe('CreateUserUseCase', () => {
     userRepo.create.mockResolvedValueOnce(undefined as any);
 
     const useCase = new CreateUserUseCase(userRepo, logger);
-    const result = await useCase.execute({ username: 'johnsmith', password: 'password123' });
+    const result = await useCase.execute({
+      username: 'johnsmith',
+      password: 'password123',
+    });
 
     expect(result).toHaveProperty('id');
     expect(userRepo.create).toHaveBeenCalled();
 
-    const savedUser = (userRepo.create.mock.calls[0][0]) as User;
+    const savedUser = userRepo.create.mock.calls[0][0];
     expect(savedUser.username).toBe('johnsmith');
     expect(savedUser.password).not.toBe('password123');
   });
@@ -45,9 +48,9 @@ describe('CreateUserUseCase', () => {
     userRepo.findByUsername.mockResolvedValueOnce({} as any);
     const useCase = new CreateUserUseCase(userRepo, logger);
 
-    await expect(useCase.execute({ username: 'taken', password: 'password123' })).rejects.toBeInstanceOf(ConflictException);
+    await expect(
+      useCase.execute({ username: 'taken', password: 'password123' }),
+    ).rejects.toBeInstanceOf(ConflictException);
     expect(logger.error).toHaveBeenCalled();
   });
 });
-
-

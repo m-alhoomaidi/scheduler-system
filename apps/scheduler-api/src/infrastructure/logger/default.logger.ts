@@ -1,10 +1,10 @@
-import { Logger } from "@nestjs/common";
-import { ILogger } from "./interfaces/logger.interface";
+import { Logger } from '@nestjs/common';
+import { ILogger } from './interfaces/logger.interface';
 
 export class DefaultLogger extends Logger implements ILogger {
-  private defaultMetadata: Record<string, any> = {};
+  private defaultMetadata: Record<string, unknown> = {};
 
-  constructor(context?: string, defaultMetadata?: Record<string, any>) {
+  constructor(context?: string, defaultMetadata?: Record<string, unknown>) {
     super(context || 'App');
     this.defaultMetadata = defaultMetadata || {};
   }
@@ -17,7 +17,7 @@ export class DefaultLogger extends Logger implements ILogger {
     return super.debug(message);
   }
 
-  log(message: string | any, metadata?: unknown): void {
+  log(message: string, metadata?: unknown): void {
     const meta = this.buildMetadata(metadata);
     if (meta) {
       return super.log(message, meta);
@@ -25,7 +25,7 @@ export class DefaultLogger extends Logger implements ILogger {
     return super.log(message);
   }
 
-  warn(message: string | any, metadata?: unknown): void {
+  warn(message: string, metadata?: unknown): void {
     const meta = this.buildMetadata(metadata);
     if (meta) {
       return super.warn(message, meta);
@@ -59,7 +59,7 @@ export class DefaultLogger extends Logger implements ILogger {
     return super.log(auditMessage);
   }
 
-  setMetadata(metadata: Record<string, any>): void {
+  setMetadata(metadata: Record<string, unknown>): void {
     this.defaultMetadata = metadata;
   }
 
@@ -76,6 +76,8 @@ export class DefaultLogger extends Logger implements ILogger {
       return { ...this.defaultMetadata, data: metadata };
     }
 
-    return Object.keys(this.defaultMetadata).length > 0 ? this.defaultMetadata : null;
+    return Object.keys(this.defaultMetadata).length > 0
+      ? this.defaultMetadata
+      : null;
   }
 }

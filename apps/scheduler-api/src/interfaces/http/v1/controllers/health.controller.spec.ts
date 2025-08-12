@@ -16,5 +16,3 @@ describe('HealthController', () => {
     expect(() => new Date(res.timestamp)).not.toThrow();
   });
 });
-
-

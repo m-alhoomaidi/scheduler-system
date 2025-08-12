@@ -36,5 +36,3 @@ describe('ApiLog Entity', () => {
     expect(log.statusCode).toBe(204);
   });
 });
-
-

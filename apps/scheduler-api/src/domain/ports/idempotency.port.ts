@@ -1,6 +1,8 @@
-import { IdempotencyEntity } from "../entities/idempotency.entity";
+import { IdempotencyEntity } from '../entities/idempotency.entity';
 
 export abstract class IdempotencyPort {
-    abstract create(idempotency: IdempotencyEntity): Promise<IdempotencyEntity>;
-    abstract findByRequestId(requestId: string): Promise<IdempotencyEntity | null>;
-    }
+  abstract create(idempotency: IdempotencyEntity): Promise<IdempotencyEntity>;
+  abstract findByRequestId(
+    requestId: string,
+  ): Promise<IdempotencyEntity | null>;
+}

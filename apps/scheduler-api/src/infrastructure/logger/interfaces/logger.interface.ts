@@ -6,4 +6,4 @@ export interface ILogger {
 
   alert(message: string, metadata?: unknown): void;
   audit(message: string, metadata?: unknown): void;
-} 
+}

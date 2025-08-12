@@ -3,15 +3,15 @@ import { LoggerProvider } from './logger.provider';
 
 export class LoggerNestAdapter implements LoggerPort {
   constructor(
-    private readonly provider: LoggerProvider, 
-    private readonly contextMeta?: TLogMeta
+    private readonly provider: LoggerProvider,
+    private readonly contextMeta?: TLogMeta,
   ) {}
 
   private mergeContext(meta?: TLogMeta): TLogMeta | undefined {
     if (!this.contextMeta && !meta) return undefined;
     if (!this.contextMeta) return meta;
     if (!meta) return this.contextMeta;
-    return meta
+    return meta;
   }
 
   private getContextName(): string {
@@ -49,15 +49,18 @@ export class LoggerNestAdapter implements LoggerPort {
   error(message: string, meta?: TLogMeta & { err?: Error }): void {
     this.provider.setContext(this.getContextName());
     const { err, ...restMeta } = meta || {};
-    
+
     if (err instanceof Error) {
       // Pass the Error object directly to leverage native error formatting
-      this.provider.error(err, this.mergeContext({
-        ...restMeta,
-        originalMessage: message,
-        errorMessage: err.message,
-        stack: err.stack
-      }));
+      this.provider.error(
+        err,
+        this.mergeContext({
+          ...restMeta,
+          originalMessage: message,
+          errorMessage: err.message,
+          stack: err.stack,
+        }),
+      );
     } else {
       this.provider.error(message, this.mergeContext(meta));
     }
@@ -68,7 +71,10 @@ export class LoggerNestAdapter implements LoggerPort {
     this.provider.alert(message, this.mergeContext(meta));
   }
 
-  audit(action: string, meta?: TLogMeta & { actor?: string; subject?: string }): void {
+  audit(
+    action: string,
+    meta?: TLogMeta & { actor?: string; subject?: string },
+  ): void {
     this.provider.setContext(this.getContextName());
     this.provider.audit(action, this.mergeContext(meta));
   }
@@ -77,5 +83,3 @@ export class LoggerNestAdapter implements LoggerPort {
     return new LoggerNestAdapter(this.provider, this.mergeContext(context));
   }
 }
-
-

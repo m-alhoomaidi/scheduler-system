@@ -9,14 +9,13 @@ export class CreateTaskUseCase {
     private readonly taskEngine: TaskEnginePort,
   ) {}
 
-  async execute(input: { ssuuid: string; message: string; }) {
+  async execute(input: { ssuuid: string; message: string }) {
     // health check first
     try {
       await this.taskEngine.ping();
     } catch {
       throw new ServiceUnavailableException('Task engine is unavailable');
     }
-   
 
     const grpc = await this.taskEngine.registerTask({
       ssuuid: input.ssuuid,
@@ -28,12 +27,10 @@ export class CreateTaskUseCase {
       message: input.message,
     });
 
-    return { id: grpc.taskId || saved.id,  };
+    return { id: grpc.taskId || saved.id };
   }
 
   async pingEngine() {
     return this.taskEngine.ping();
   }
 }
-
-

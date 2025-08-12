@@ -34,5 +34,3 @@ describe('ScheduledTaskQueue Entity', () => {
     expect(item.grpcResponse).toEqual({ taskId: 't1' });
   });
 });
-
-

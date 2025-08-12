@@ -1,17 +1,15 @@
-// src/infrastructure/redis/redis.module.ts
 import { DynamicModule, Global, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import Redis, { Redis as RedisClient } from 'ioredis';
+import Redis from 'ioredis';
 import { RedisAdapter } from './redis.adapter';
 import { RedisPort } from '@domain/ports/redis.port';
-
 
 @Global()
 @Module({})
 export class RedisModule {
   static registerAsync(): DynamicModule {
     return {
-      global:true,
+      global: true,
       module: RedisModule,
       imports: [ConfigModule],
       providers: [
@@ -32,10 +30,7 @@ export class RedisModule {
         },
         RedisAdapter,
       ],
-      exports: [RedisPort,
-'REDIS_CLIENT'
-
-      ],
+      exports: [RedisPort, 'REDIS_CLIENT'],
     };
   }
 }

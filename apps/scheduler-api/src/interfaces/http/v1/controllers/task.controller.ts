@@ -1,5 +1,23 @@
-import { Body, Controller, Delete, Get, Headers, HttpCode, HttpStatus, Param, Post, Query, Req, UseInterceptors } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Query,
+  Req,
+  UseInterceptors,
+} from '@nestjs/common';
+import { Request } from 'express';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { JwtAuth } from '../../decorators/jwt-auth.decorator';
 import { CreateTaskDto } from '../dto/create-task.dto';
 import { PaginationDto } from '../dto/pagination.dto';
@@ -7,6 +25,7 @@ import { CreateTaskUseCase } from '@/application/use-cases/create-task.use-case'
 import { DeleteTaskUseCase } from '@/application/use-cases/delete-task.use-case';
 import { ListTasksUseCase } from '@/application/use-cases/list-tasks.use-case';
 import { IdempotencyInterceptor } from '../../interceptors/idempotency.interceptor';
+import { AuthenticatedRequest } from '../types/authenticated-request.interface';
 
 @ApiTags('tasks')
 @ApiBearerAuth('jwt')
@@ -22,12 +41,11 @@ export class TaskController {
   @JwtAuth()
   @UseInterceptors(IdempotencyInterceptor)
   @HttpCode(HttpStatus.ACCEPTED)
-  @ApiOperation({ summary: 'Create a scheduled task (idempotent with Idempotency-Key header)' })
-  async create(
-    @Body() dto: CreateTaskDto,
-    @Req() req: any,
-  ) {
-    const { ssuid } = req.user as { ssuid: string };
+  @ApiOperation({
+    summary: 'Create a scheduled task (idempotent with Idempotency-Key header)',
+  })
+  async create(@Body() dto: CreateTaskDto, @Req() req: AuthenticatedRequest) {
+    const { ssuid } = req.user;
     return this.createTask.execute({ ssuuid: ssuid, message: dto.message });
   }
 
@@ -43,9 +61,13 @@ export class TaskController {
   @JwtAuth()
   @ApiOperation({ summary: 'List scheduled tasks (paginated)' })
   @ApiResponse({ status: 200 })
-  async list(@Query() q: PaginationDto, @Req() req: any) {
-    const { ssuid } = req.user as { ssuid: string };
-    return this.listTasks.execute({ ssuuid: ssuid, page: q.page, limit: q.limit });
+  async list(@Query() q: PaginationDto, @Req() req: AuthenticatedRequest) {
+    const { ssuid } = req.user;
+    return this.listTasks.execute({
+      ssuuid: ssuid,
+      page: q.page,
+      limit: q.limit,
+    });
   }
 
   @Get('ping')
@@ -56,5 +78,3 @@ export class TaskController {
     return this.createTask.pingEngine();
   }
 }
-
-

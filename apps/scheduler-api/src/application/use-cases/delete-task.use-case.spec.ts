@@ -14,7 +14,9 @@ describe('DeleteTaskUseCase', () => {
   it('throws when engine is unavailable', async () => {
     engine.ping.mockRejectedValueOnce(new Error('down'));
     const uc = new DeleteTaskUseCase(engine);
-    await expect(uc.execute({ taskId: 't1' })).rejects.toBeInstanceOf(ServiceUnavailableException);
+    await expect(uc.execute({ taskId: 't1' })).rejects.toBeInstanceOf(
+      ServiceUnavailableException,
+    );
     expect(engine.deleteTask).not.toHaveBeenCalled();
   });
 
@@ -27,6 +29,3 @@ describe('DeleteTaskUseCase', () => {
     expect(engine.deleteTask).toHaveBeenCalledWith('t1');
   });
 });
-
-
-

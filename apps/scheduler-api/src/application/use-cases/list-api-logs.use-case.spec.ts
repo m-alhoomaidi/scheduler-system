@@ -18,7 +18,10 @@ describe('ListApiLogsUseCase', () => {
   });
 
   it('passes page and limit', async () => {
-    repo.findPaginated.mockResolvedValueOnce({ data: [{ id: 'a1' } as any], total: 1 });
+    repo.findPaginated.mockResolvedValueOnce({
+      data: [{ id: 'a1' } as any],
+      total: 1,
+    });
     const uc = new ListApiLogsUseCase(repo);
     const res = await uc.execute({ page: 3, limit: 50 });
     expect(repo.findPaginated).toHaveBeenCalledWith({ page: 3, limit: 50 });
@@ -27,6 +30,3 @@ describe('ListApiLogsUseCase', () => {
     expect(res.total).toBe(1);
   });
 });
-
-
-

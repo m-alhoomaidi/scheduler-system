@@ -1,4 +1,3 @@
-import { Test } from '@nestjs/testing';
 import { CreateTaskUseCase } from './create-task.use-case';
 import { ScheduledTaskQueueRepositoryPort } from '@/domain/ports/scheduled-task-queue.repository.port';
 import { TaskEnginePort } from '@/domain/ports/task-engine.port';
@@ -25,10 +24,11 @@ describe('CreateTaskUseCase', () => {
   it('throws when engine is down', async () => {
     engine.ping.mockRejectedValueOnce(new Error('down'));
     const useCase = new CreateTaskUseCase(queueRepo, engine);
-    await expect(useCase.execute({ ssuuid: 'u1', message: 'hi' })).rejects.toBeInstanceOf(ServiceUnavailableException);
+    await expect(
+      useCase.execute({ ssuuid: 'u1', message: 'hi' }),
+    ).rejects.toBeInstanceOf(ServiceUnavailableException);
   });
 
- 
   it('registers and enqueues when new', async () => {
     engine.ping.mockResolvedValueOnce(undefined as any);
     engine.registerTask.mockResolvedValueOnce({ taskId: 'grpc-1' } as any);
@@ -50,5 +50,3 @@ describe('CreateTaskUseCase', () => {
     expect(res.id).toBe('db-xyz');
   });
 });
-
-

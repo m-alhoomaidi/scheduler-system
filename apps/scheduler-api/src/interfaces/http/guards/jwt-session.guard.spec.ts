@@ -11,23 +11,29 @@ describe('JwtSessionGuard', () => {
 
   const ctx = {
     switchToHttp: () => ({
-      getRequest: () => ({ headers: { authorization: 'Bearer token' }, user: { ssuid: 'u1' } }),
+      getRequest: () => ({
+        headers: { authorization: 'Bearer token' },
+        user: { ssuid: 'u1' },
+      }),
     }),
   } as unknown as ExecutionContext;
 
   it('allows when session valid', async () => {
-    (JwtSessionGuard as any).prototype.__proto__.canActivate = jest.fn().mockResolvedValue(true);
+    (JwtSessionGuard as any).prototype.__proto__.canActivate = jest
+      .fn()
+      .mockResolvedValue(true);
     sessionService.isValidSession.mockResolvedValueOnce(true);
     await expect(next.canActivate(ctx)).resolves.toBe(true);
     expect(sessionService.renewSession).toHaveBeenCalledWith('u1', 'token');
   });
 
   it('rejects when session invalid', async () => {
-    (JwtSessionGuard as any).prototype.__proto__.canActivate = jest.fn().mockResolvedValue(true);
+    (JwtSessionGuard as any).prototype.__proto__.canActivate = jest
+      .fn()
+      .mockResolvedValue(true);
     sessionService.isValidSession.mockResolvedValueOnce(false);
-    await expect(next.canActivate(ctx)).rejects.toBeInstanceOf(UnauthorizedException);
+    await expect(next.canActivate(ctx)).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
   });
 });
-
-
-

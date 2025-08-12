@@ -1,4 +1,8 @@
-import { Injectable, ConflictException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
 import { v4 as uuid } from 'uuid';
 import { User } from '../../domain/entities/user.entity';
 import { CreateUserCommand } from '../dto/create-user.command';
@@ -7,8 +11,9 @@ import { LoggerPort } from '../ports/logger.port';
 
 @Injectable()
 export class CreateUserUseCase {
-  constructor(private readonly userRepo: UserRepositoryPort,
-    private readonly logger: LoggerPort
+  constructor(
+    private readonly userRepo: UserRepositoryPort,
+    private readonly logger: LoggerPort,
   ) {}
 
   async execute(cmd: CreateUserCommand): Promise<{ id: string }> {
@@ -20,7 +25,17 @@ export class CreateUserUseCase {
 
     const ssuuid = uuid(); // For production, consider using a more structured format like shc-000000-000000-000000-000000-000000
     try {
-      const user = new User(ssuuid, cmd.username, cmd.password, 'USER', null, null, new Date(), new Date(), null);
+      const user = new User(
+        ssuuid,
+        cmd.username,
+        cmd.password,
+        'USER',
+        null,
+        null,
+        new Date(),
+        new Date(),
+        null,
+      );
       await this.userRepo.create(user);
     } catch (e: any) {
       throw new BadRequestException(e?.message || 'Invalid user data');

@@ -1,16 +1,14 @@
 import { Injectable, Inject } from '@nestjs/common';
-import Redis, { Redis as RedisClient } from 'ioredis';
-import { SessionService }     from '@application/session/session.service';
-import { sessionKey }         from './redis.utils';
+import { Redis as RedisClient } from 'ioredis';
+import { SessionService } from '@application/session/session.service';
+import { sessionKey } from './redis.utils';
 
 @Injectable()
 export class RedisSessionService implements SessionService {
   // TODO improve this, (future work) - ttl based user
-  private readonly ttl = 300; // 5 minutes 
+  private readonly ttl = 300; // 5 minutes
 
-  constructor(
-    @Inject('REDIS_CLIENT') private readonly client: RedisClient,
-  ) {}
+  constructor(@Inject('REDIS_CLIENT') private readonly client: RedisClient) {}
 
   async storeToken(ssuid: string, token: string) {
     const key = sessionKey(ssuid, token);
