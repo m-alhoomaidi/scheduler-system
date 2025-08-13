@@ -49,3 +49,6 @@ jobs:
 
 
 
+
+
+# future work (build the images and then push them to the registry, the k8s deployment should pull the images from the registry)
