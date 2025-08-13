@@ -7,6 +7,7 @@ import {
 } from '@nestjs/swagger';
 import { PaginationDto } from '../dto/pagination.dto';
 import { ListApiLogsUseCase } from '@/application/use-cases/list-api-logs.use-case';
+import { JwtAuth } from '../../decorators/jwt-auth.decorator';
 
 @ApiTags('logs')
 @ApiBearerAuth('jwt')
@@ -15,6 +16,7 @@ export class LogsController {
   constructor(private readonly listLogs: ListApiLogsUseCase) {}
 
   @Get()
+  @JwtAuth()
   @ApiOperation({ summary: 'List API logs for the current user (paginated)' })
   @ApiResponse({ status: 200 })
   async list(@Query() q: PaginationDto) {

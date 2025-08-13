@@ -5,7 +5,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.hibernate.annotations.Where;
+import org.hibernate.annotations.SQLRestriction;
+import com.scheduler.scheduler_engine.scheduling.CronExpression;
+import java.time.ZonedDateTime;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -16,7 +18,7 @@ import java.util.UUID;
     @Index(name = "idx_created_at", columnList = "created_at"),
     @Index(name = "idx_deleted_at", columnList = "deleted_at")
 })
-@Where(clause = "deleted_at IS NULL")
+@SQLRestriction("deleted_at IS NULL")
 public class ScheduledTask {
 
     @Id
@@ -32,8 +34,11 @@ public class ScheduledTask {
     private String message;
 
     @NotBlank
-    @Column(name = "idempotency_key", nullable = false)
-    private String idempotencyKey = "default";
+    @Column(name = "cron_expression", nullable = false)
+    private String cronExpression;
+
+    @Column(name = "next_execution_time")
+    private LocalDateTime nextExecutionTime;
 
 
     @NotNull
@@ -61,10 +66,10 @@ public class ScheduledTask {
     // Constructors
     public ScheduledTask() {}
 
-    public ScheduledTask(String ssuuid, String message) {
+    public ScheduledTask(String ssuuid, String message, String cronExpression) {
         this.ssuuid = ssuuid;
         this.message = message;
-       
+        this.cronExpression = cronExpression;
     }
 
     // Getters and Setters
@@ -92,12 +97,20 @@ public class ScheduledTask {
         this.message = message;
     }
 
-    public String getIdempotencyKey() {
-        return idempotencyKey;
+    public String getCronExpression() {
+        return cronExpression;
     }
 
-    public void setIdempotencyKey(String idempotencyKey) {
-        this.idempotencyKey = idempotencyKey;
+    public void setCronExpression(String cronExpression) {
+        this.cronExpression = cronExpression;
+    }
+
+    public LocalDateTime getNextExecutionTime() {
+        return nextExecutionTime;
+    }
+
+    public void setNextExecutionTime(LocalDateTime nextExecutionTime) {
+        this.nextExecutionTime = nextExecutionTime;
     }
 
 
@@ -150,7 +163,7 @@ public class ScheduledTask {
         this.status = status;
     }
 
-    // Business Methods
+    
     public void markAsDeleted() {
         this.deletedAt = LocalDateTime.now();
         this.status = TaskStatus.DELETED;
@@ -159,7 +172,23 @@ public class ScheduledTask {
     public void incrementExecutionCount() {
         this.executionCount++;
         this.lastExecutedAt = LocalDateTime.now();
-        // Keep status transitions controlled by the service; entity stays simple.
+    }
+
+    public void calculateNextExecutionTime() {
+        if (this.cronExpression != null && !this.cronExpression.isBlank()) {
+            try {
+                CronExpression cron = 
+                    com.scheduler.scheduler_engine.scheduling.CronExpression.parse(this.cronExpression);
+                    ZonedDateTime next = cron.nextExecutionAfter(java.time.ZonedDateTime.now());
+                this.nextExecutionTime = next.toLocalDateTime();
+            } catch (Exception e) {
+                
+                this.nextExecutionTime = LocalDateTime.now().plusSeconds(5);
+            }
+        } else {
+            
+            this.nextExecutionTime = LocalDateTime.now().plusSeconds(5);
+        }
     }
 
     public boolean isDeleted() {
@@ -175,9 +204,7 @@ public class ScheduledTask {
         if (this.createdAt == null) {
             this.createdAt = LocalDateTime.now();
         }
-        if (this.idempotencyKey == null || this.idempotencyKey.isBlank()) {
-            this.idempotencyKey = "default";
-        }
+
         if (this.status == null) {
             this.status = TaskStatus.PENDING;
         }

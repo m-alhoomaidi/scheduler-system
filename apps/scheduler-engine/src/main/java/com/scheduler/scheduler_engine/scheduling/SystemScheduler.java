@@ -1,7 +1,6 @@
 package com.scheduler.scheduler_engine.scheduling;
 
 import com.scheduler.scheduler_engine.service.TaskExecutionService;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,13 +15,15 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
+import com.scheduler.scheduler_engine.logger.AppLogger;
+
 @Component
-@Slf4j
 public class SystemScheduler implements InitializingBean, DisposableBean {
     private final TaskExecutionService taskExecutionService;
     private final String executionCronExpression;
     private final long cleanupIntervalMillis;
-
+    private final boolean schedulerEnabled;
+    private final AppLogger log;
     private ScheduledExecutorService executor;
     private ScheduledFuture<?> executionFuture;
     private ScheduledFuture<?> cleanupFuture;
@@ -30,15 +31,24 @@ public class SystemScheduler implements InitializingBean, DisposableBean {
     public SystemScheduler(
             TaskExecutionService taskExecutionService,
             @Value("${scheduler.task.execution-cron:*/5 * * * * *}") String executionCronExpression,
-            @Value("${scheduler.task.cleanup-interval:3600000}") long cleanupIntervalMillis
+            @Value("${scheduler.task.cleanup-interval:3600000}") long cleanupIntervalMillis,
+            @Value("${scheduler.enabled:true}") boolean schedulerEnabled,
+            AppLogger log
     ) {
         this.taskExecutionService = Objects.requireNonNull(taskExecutionService);
         this.executionCronExpression = executionCronExpression;
         this.cleanupIntervalMillis = cleanupIntervalMillis;
+        this.schedulerEnabled = schedulerEnabled;
+        this.log = log;
     }
 
     @Override
     public void afterPropertiesSet() {
+        if (!schedulerEnabled) {
+            log.info("Scheduler is disabled, skipping startup");
+            return;
+        }
+        
         this.executor = Executors.newScheduledThreadPool(2, new SchedulerThreadFactory());
         startExecutionLoop();
         startCleanupLoop();
@@ -49,14 +59,14 @@ public class SystemScheduler implements InitializingBean, DisposableBean {
         CronExpression cron = CronExpression.parse(executionCronExpression);
         this.executionFuture = executor.scheduleWithFixedDelay(() -> {
             try {
-                // Ensure we are on second boundaries per matching
+               
                 ZonedDateTime now = ZonedDateTime.now().withNano(0);
                 ZonedDateTime next = cron.nextExecutionAfter(now.minusSeconds(1));
                 long delayMs = Math.max(0, next.toInstant().toEpochMilli() - now.toInstant().toEpochMilli());
                 if (delayMs > 0) {
                     Thread.sleep(delayMs);
                 }
-                runExecutePendingTasks();
+                runExecutePendingTasks(Thread.currentThread().threadId());
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
             } catch (Throwable t) {
@@ -76,8 +86,8 @@ public class SystemScheduler implements InitializingBean, DisposableBean {
     }
 
     @Transactional
-    protected void runExecutePendingTasks() {
-        taskExecutionService.executePendingTasks();
+    protected void runExecutePendingTasks(long threadId) {
+        taskExecutionService.executePendingTasks(threadId);
     }
 
     @Transactional

@@ -1,58 +1,92 @@
 package com.scheduler.scheduler_engine.service;
 
+import com.scheduler.scheduler_engine.config.SchedulerConfig;
 import com.scheduler.scheduler_engine.domain.entity.ScheduledTask;
 import com.scheduler.scheduler_engine.domain.entity.TaskStatus;
 import com.scheduler.scheduler_engine.domain.repository.ScheduledTaskRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.annotation.PreDestroy;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
+import com.scheduler.scheduler_engine.logger.AppLogger;
 
 @Service
-@RequiredArgsConstructor
-@Slf4j
 public class TaskExecutionService {
 
     private final ScheduledTaskRepository scheduledTaskRepository;
+    private final SchedulerConfig config;
+    private final TaskExecutor taskExecutor;
+    private final TaskRetryService retryService;
+    private final AppLogger log;
+    private final Executor executorService;
 
-    @Value("${scheduler.task.max-retries:3}")
-    private int maxRetries;
-
-    @Value("${scheduler.task.max-executions:10}")
-    private int maxExecutions;
-
-    @Value("${scheduler.task.cleanup-enabled:true}")
-    private boolean cleanupEnabled;
-
-    @Value("${scheduler.task.cleanup-interval:3600000}")
-    private long cleanupInterval;
+    public TaskExecutionService(
+        ScheduledTaskRepository scheduledTaskRepository,
+        SchedulerConfig config,
+        TaskExecutor taskExecutor,
+        TaskRetryService retryService,
+        AppLogger log) {
+        this.scheduledTaskRepository = scheduledTaskRepository;
+        this.config = config;
+        this.taskExecutor = taskExecutor;
+        this.retryService = retryService;
+        this.log = log;
+        this.executorService = Executors.newFixedThreadPool(
+            config.getExecutor().getThreadPoolSize(),
+            r -> {
+                Thread t = new Thread(r, "task-executor");
+                t.setDaemon(true);
+                return t;
+            }
+        );
+    }
 
   
     @Transactional
-    public void executePendingTasks() {
+    public void executePendingTasks(long threadId) {
         try {
-            List<ScheduledTask> pendingTasks = scheduledTaskRepository.findPendingTasksForExecution();
+            LocalDateTime now = LocalDateTime.now();
+            List<ScheduledTask> pendingTasks = scheduledTaskRepository.findPendingTasksForExecution(now);
             
             if (pendingTasks.isEmpty()) {
-                log.debug("No pending tasks to execute");
-                return;
+                log.info("No Found pending task to execute on thread: {}", threadId);
+                return; 
             }
 
-            log.info("Executing {} pending tasks", pendingTasks.size());
+            log.info("\u001B[32m⏰ Found {} tasks due for execution on thread: {}\u001B[0m", pendingTasks.size(), threadId);
 
-            for (ScheduledTask task : pendingTasks) {
-                try {
-                    executeTask(task);
-                } catch (Exception e) {
-                    log.error("Error executing task: taskId={}, error={}", 
-                            task.getId(), e.getMessage(), e);
-                    handleTaskExecutionError(task, e);
-                }
-            }
+            
+            int maxConcurrent = Math.min(pendingTasks.size(), config.getTask().getMaxConcurrentTasks());
+            
+            List<CompletableFuture<Void>> futures = pendingTasks.stream()
+                .limit(maxConcurrent)
+                .map(task -> CompletableFuture.runAsync(() -> {
+                    try {
+                        executeTask(task);
+                    } catch (Exception e) {
+                        log.error("Task execution failed: taskId={}, error={}", 
+                                task.getId(), e.getMessage());
+                        handleTaskExecutionError(task, e);
+                    }
+                }, executorService))
+                .toList();
+
+            
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                .whenComplete((result, throwable) -> {
+                    if (throwable != null) {
+                        log.error("Error in batch execution", throwable);
+                    } else {
+                        log.debug("Batch execution completed: {} tasks", futures.size());
+                    }
+                });
 
         } catch (Exception e) {
             log.error("Error in task execution cycle: error={}", e.getMessage(), e);
@@ -61,94 +95,77 @@ public class TaskExecutionService {
 
     @Transactional
     public void cleanupOldTasks() {
-        if (!cleanupEnabled) {
+        if (!config.getTask().isCleanupEnabled()) {
             return;
         }
 
         try {
-            LocalDateTime threshold = LocalDateTime.now().minusHours(24); // Clean up tasks older than 24 hours
-            
+            LocalDateTime threshold = LocalDateTime.now().minusHours(24);
             List<ScheduledTask> staleTasks = scheduledTaskRepository.findStaleTasks(threshold);
             
             if (!staleTasks.isEmpty()) {
-                log.info("Cleaning up {} stale tasks", staleTasks.size());
-                
-                for (ScheduledTask task : staleTasks) {
+                log.info("Cleaning up {} stale tasks older than 24 hours", staleTasks.size());
+                staleTasks.forEach(task -> {
                     task.markAsDeleted();
                     scheduledTaskRepository.save(task);
-                    log.debug("Marked stale task as deleted: taskId={}", task.getId());
-                }
+                });
             }
 
         } catch (Exception e) {
-            log.error("Error during task cleanup: error={}", e.getMessage(), e);
+            log.error("Error during task cleanup", e);
         }
     }
 
    
+    @Transactional
     private void executeTask(ScheduledTask task) {
-        log.info("Executing task: taskId={}, ssuuid={}, message={}", 
-                task.getId(), task.getSsuuid(), task.getMessage());
-
-        // Mark task as running for this cycle
+        // Mark task as running
         task.setStatus(TaskStatus.RUNNING);
         scheduledTaskRepository.save(task);
 
         try {
-            // Simulate task execution - in real implementation, this would be the actual task logic
-            performTaskExecution(task);
+            // Use the injected task executor (strategy pattern)
+            taskExecutor.execute(task);
             
-            // One cycle completed; increment count and transition state
+            // Success: increment count and schedule next execution
             task.incrementExecutionCount();
-            if (task.getExecutionCount() >= maxExecutions) {
-                task.setStatus(TaskStatus.COMPLETED);
-                scheduledTaskRepository.save(task);
-                log.info("Task marked COMPLETED: taskId={}, totalExecutions={}",
-                        task.getId(), task.getExecutionCount());
-            } else {
-                task.setStatus(TaskStatus.PENDING);
-                scheduledTaskRepository.save(task);
-                log.debug("Task scheduled for next execution: taskId={}, executionCount={}/{})",
-                        task.getId(), task.getExecutionCount(), maxExecutions);
-            }
-            
-            log.info("Task cycle succeeded: taskId={}, executionCount={}",
-                    task.getId(), task.getExecutionCount());
+            task.calculateNextExecutionTime();
+            task.setStatus(TaskStatus.PENDING);
+            scheduledTaskRepository.save(task);
 
         } catch (Exception e) {
-            throw e; // Re-throw to be handled by the caller
+            throw new RuntimeException("Task execution failed", e);
         }
     }
 
-    
-    private void performTaskExecution(ScheduledTask task) {
-        // Simulate some work
-        try {
-            Thread.sleep(100); // Simulate processing time
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException("Task execution interrupted", e);
-        }
-
-        // Log the task message (this is the main requirement - log every 5 seconds)
-        log.info("Task execution: [{}] {}", task.getSsuuid(), task.getMessage());
-    }
-
-    
+    @Transactional
     private void handleTaskExecutionError(ScheduledTask task, Exception error) {
-        task.incrementExecutionCount();
-        
-        if (task.getExecutionCount() >= maxRetries) {
-            task.setStatus(TaskStatus.FAILED);
-            log.error("Task failed after {} retries: taskId={}, finalError={}", 
-                    maxRetries, task.getId(), error.getMessage());
-        } else {
+        if (retryService.shouldRetry(task, error)) {
+            retryService.scheduleRetry(task, error);
             task.setStatus(TaskStatus.PENDING);
-            log.warn("Task execution failed, will retry: taskId={}, attempt={}/{}, error={}", 
-                    task.getId(), task.getExecutionCount(), maxRetries, error.getMessage());
+        } else {
+            log.error("Task permanently failed: taskId={}, error={}", task.getId(), error.getMessage());
+            task.setStatus(TaskStatus.FAILED);
         }
         
         scheduledTaskRepository.save(task);
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        log.info("Shutting down TaskExecutionService...");
+        if (executorService instanceof java.util.concurrent.ExecutorService) {
+            java.util.concurrent.ExecutorService es = (java.util.concurrent.ExecutorService) executorService;
+            es.shutdown();
+            try {
+                if (!es.awaitTermination(config.getExecutor().getShutdownTimeoutSeconds(), TimeUnit.SECONDS)) {
+                    es.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                es.shutdownNow();
+            }
+        }
     }
 
  

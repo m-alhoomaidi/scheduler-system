@@ -24,13 +24,16 @@ public interface ScheduledTaskRepository extends JpaRepository<ScheduledTask, UU
     List<ScheduledTask> findBySsuuidAndDeletedAtIsNullOrderByCreatedAtDesc(String ssuuid);
 
    
-    @Query("SELECT t FROM ScheduledTask t WHERE t.status = 'PENDING' AND t.deletedAt IS NULL ORDER BY t.createdAt ASC")
-    List<ScheduledTask> findPendingTasksForExecution();
+    @Query("SELECT t FROM ScheduledTask t WHERE t.status = 'PENDING' AND t.deletedAt IS NULL AND t.nextExecutionTime <= :now ORDER BY t.nextExecutionTime ASC")
+    List<ScheduledTask> findPendingTasksForExecution(@Param("now") java.time.LocalDateTime now);
 
     
     List<ScheduledTask> findByStatusAndDeletedAtIsNull(TaskStatus status);
 
     long countByStatusAndDeletedAtIsNull(TaskStatus status);
+
+    // Count all active tasks
+    long countByDeletedAtIsNull();
 
    
     boolean existsBySsuuidAndDeletedAtIsNull(String ssuuid);

@@ -40,14 +40,26 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.springframework.boot:spring-boot-starter-web-services'
+	
+	// Jakarta validation
+	implementation 'jakarta.validation:jakarta.validation-api'
 	implementation 'ai.timefold.solver:timefold-solver-spring-boot-starter'
 
+	// Observability
+	implementation 'io.micrometer:micrometer-tracing-bridge-otel'
+	implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
+	implementation 'io.micrometer:micrometer-registry-prometheus'
+	
 	// gRPC
 	implementation "net.devh:grpc-server-spring-boot-starter:2.15.0.RELEASE"
     implementation "io.grpc:grpc-protobuf:${grpcJavaVersion}"
     implementation "io.grpc:grpc-stub:${grpcJavaVersion}"
     runtimeOnly   "io.grpc:grpc-netty-shaded:${grpcJavaVersion}"
     implementation "io.grpc:grpc-services:${grpcJavaVersion}" // reflection/health services
+    
+    // Protobuf dependencies
+    implementation "com.google.protobuf:protobuf-java:${protobufVersion}"
+    implementation "com.google.protobuf:protobuf-java-util:${protobufVersion}"
 
 
 	// Lombok
@@ -56,7 +68,6 @@ dependencies {
 
 	// Dev
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
-	developmentOnly 'org.springframework.boot:spring-boot-docker-compose'
 
 	// DB
 	runtimeOnly 'org.postgresql:postgresql'
@@ -101,7 +112,7 @@ tasks.named('test') {
 sourceSets {
   main {
     proto {
-      srcDir '../../libs/proto'   
+      srcDir '../../libs/proto'
     }
   }
 }

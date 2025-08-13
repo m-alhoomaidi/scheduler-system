@@ -3,7 +3,6 @@ set -e
 
 
 
-
 echo "starting seed"
 yarn db:prepare
 

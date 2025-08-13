@@ -2,9 +2,12 @@ package com.scheduler.scheduler_engine.grpc;
 
 import com.scheduler.scheduler_engine.domain.entity.ScheduledTask;
 import com.scheduler.scheduler_engine.domain.repository.ScheduledTaskRepository;
+import com.scheduler.scheduler_engine.service.TaskValidationService;
 import com.scheduler.scheduler_engine.proto.v1.*;
+import com.scheduler.scheduler_engine.logger.AppLogger;
+
 import com.scheduler.scheduler_engine.domain.entity.TaskStatus;
-import com.google.protobuf.Timestamp;
+import java.time.format.DateTimeFormatter;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
@@ -12,62 +15,59 @@ import lombok.extern.slf4j.Slf4j;
 import net.devh.boot.grpc.server.service.GrpcService;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Optional;
 import java.util.UUID;
 
+
+
 @GrpcService
-@RequiredArgsConstructor
-@Slf4j
+
 public class TaskEngineGrpcService extends TaskEngineGrpc.TaskEngineImplBase {
 
+    private final AppLogger log;
     private final ScheduledTaskRepository scheduledTaskRepository;
+    private final TaskValidationService validationService;
 
-    
+    public TaskEngineGrpcService(AppLogger log, ScheduledTaskRepository scheduledTaskRepository, TaskValidationService validationService) {
+        this.log = log;
+        this.scheduledTaskRepository = scheduledTaskRepository;
+        this.validationService = validationService;
+    }
+
+   
     @Override
     @Transactional
     public void registerTask(RegisterTaskRequest request, StreamObserver<RegisterTaskResponse> responseObserver) {
         try {
-            if (request.getSsuuid().isBlank() || request.getMessage().isBlank()) {
-                responseObserver.onError(
-                        Status.INVALID_ARGUMENT.withDescription("ssuuid and message are required and must be non-blank").asRuntimeException()
-                );
-                return;
-            }
+            validationService.validateTaskCreation(request.getSsuuid(), request.getMessage());
+            
+            String cronExpression = "*/5 * * * * *";
 
             log.info("RegisterTask: ssuuid={}", request.getSsuuid());
-
-            Optional<ScheduledTask> existing = scheduledTaskRepository
-                    .findBySsuuidAndDeletedAtIsNull(request.getSsuuid());
-
-            if (existing.isPresent()) {
-                String taskId = existing.get().getId().toString();
-                log.info("RegisterTask idempotent hit: taskId={}", taskId);
-                respond(responseObserver, RegisterTaskResponse.newBuilder().setTaskId(taskId).build());
-                return;
-            }
+            validationService.auditTaskOperation("REGISTER", request.getSsuuid(), "Task registration attempt");
 
             ScheduledTask toSave = new ScheduledTask(
                     request.getSsuuid(),
-                    request.getMessage()
+                    request.getMessage(),
+                    cronExpression
             );
+            
+            // Calculate initial execution time
+            toSave.calculateNextExecutionTime();
 
-            try {
-                ScheduledTask saved = scheduledTaskRepository.save(toSave);
-                log.info("RegisterTask created: taskId={}", saved.getId());
-                respond(responseObserver, RegisterTaskResponse.newBuilder().setTaskId(saved.getId().toString()).build());
-            } catch (DataIntegrityViolationException dup) {
-                ScheduledTask winner = scheduledTaskRepository
-                            .findBySsuuidAndDeletedAtIsNull(request.getSsuuid())
-                        .orElseThrow(() -> dup); // should exist now
-                log.info("RegisterTask concurrent idempotent hit: taskId={}", winner.getId());
-                respond(responseObserver, RegisterTaskResponse.newBuilder().setTaskId(winner.getId().toString()).build());
-            }
+            ScheduledTask saved = scheduledTaskRepository.save(toSave);
+            log.info("\u001B[32m✅ RegisterTask created: \u001B[36mtaskId={}\u001B[0m", saved.getId());
+            validationService.auditTaskOperation("REGISTER_SUCCESS", request.getSsuuid(), "Task created: " + saved.getId());
+            respond(responseObserver, RegisterTaskResponse.newBuilder().setTaskId(saved.getId().toString()).build());
 
+        } catch (SecurityException e) {
+            log.warn("RegisterTask security violation: ssuuid={}, error={}", request.getSsuuid(), e.getMessage());
+            validationService.auditTaskOperation("REGISTER_SECURITY_VIOLATION", request.getSsuuid(), e.getMessage());
+            responseObserver.onError(Status.INVALID_ARGUMENT.withDescription(e.getMessage()).asRuntimeException());
         } catch (Exception e) {
             log.error("RegisterTask error: ssuuid={}, error={}", request.getSsuuid(), e.getMessage(), e);
+            validationService.auditTaskOperation("REGISTER_ERROR", request.getSsuuid(), e.getMessage());
             responseObserver.onError(Status.INTERNAL.withDescription("Failed to register task").withCause(e).asRuntimeException());
         }
     }
@@ -164,9 +164,9 @@ public class TaskEngineGrpcService extends TaskEngineGrpc.TaskEngineImplBase {
                         .setMessage(t.getMessage())
                         .setStatus(t.getStatus().name())
                         .setExecutionCount(t.getExecutionCount())
-                        .setCreatedAt(toTs(t.getCreatedAt()))
-                        .setUpdatedAt(toTs(t.getUpdatedAt()))
-                        .setLastExecutedAt(toTs(t.getLastExecutedAt()))
+                        .setCreatedAt(formatDateTime(t.getCreatedAt()))
+                        .setUpdatedAt(formatDateTime(t.getUpdatedAt()))
+                        .setLastExecutedAt(formatDateTime(t.getLastExecutedAt()))
                         .build());
             }
 
@@ -177,9 +177,10 @@ public class TaskEngineGrpcService extends TaskEngineGrpc.TaskEngineImplBase {
         }
     }
 
-    private static Timestamp toTs(java.time.LocalDateTime time) {
-        if (time == null) return Timestamp.getDefaultInstance();
-        java.time.Instant instant = time.atZone(java.time.ZoneId.systemDefault()).toInstant();
-        return Timestamp.newBuilder().setSeconds(instant.getEpochSecond()).setNanos(instant.getNano()).build();
+    private static final DateTimeFormatter ISO_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+    
+    private static String formatDateTime(java.time.LocalDateTime time) {
+        if (time == null) return "";
+        return time.format(ISO_FORMATTER);
     }
 }

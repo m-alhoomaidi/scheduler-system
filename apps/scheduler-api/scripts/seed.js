@@ -1,12 +1,17 @@
-// seed.js
+require('dotenv').config()
+
+
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 
-// 1. Configure your MongoDB connection (or pull from env)
-// Default aligns with docker-compose credentials (vrtx/vrtx) and authSource admin
+
 const MONGO_URI =
-  process.env.MONGO_URI ||
- 'mongodb://vrtx:vrtx@localhost:27017/scheduler?authSource=admin'
+  process.env.MONGO_URI
+  if(!MONGO_URI){
+    console.error('The MONGO_URI is not setted up')
+  }
+
+  
 const userSchema = new mongoose.Schema({
   ssuuid: { type: String, required: true, unique: true },
   username: { type: String, required: true, unique: true },

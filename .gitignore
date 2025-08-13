@@ -150,3 +150,7 @@ apps/scheduler-engine/HELP.md
 plans.md
 README-V1.md
 INSTRUCTIONS.md
+ 
+# Observability local data
+observability/**/data
+observability/**/storage

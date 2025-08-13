@@ -1,10 +1,13 @@
 spring:
   application:
     name: scheduler-engine
+  docker:
+    compose:
+      enabled: false
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://vrtx-pg:5435/scheduler-engine}
-    username: ${SPRING_DATASOURCE_USERNAME:vrtx}
-    password: ${SPRING_DATASOURCE_PASSWORD:vrtx}
+    url: ${SPRING_DATASOURCE_URL:?SPRING_DATASOURCE_URL must be set}
+    username: ${SPRING_DATASOURCE_USERNAME:?SPRING_DATASOURCE_USERNAME must be set}
+    password: ${SPRING_DATASOURCE_PASSWORD:?SPRING_DATASOURCE_PASSWORD must be set}
     driver-class-name: ${SPRING_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
   jpa:
     hibernate:
@@ -29,7 +32,13 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: "health,info,prometheus"
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: http://otel-collector:4318/v1/traces
   endpoint:
     health:
       show-details: always
@@ -46,7 +55,17 @@ logging:
 # Scheduler settings
 scheduler:
   task:
-    execution-cron: "*/5 * * * * *"
+    default-cron-expression: "*/5 * * * * *"
     cleanup-enabled: true
-    cleanup-interval: 3600000
-    max-executions: 10
+    cleanup-interval-ms: 3600000
+    max-retries: 3
+    max-concurrent-tasks: 50
+  executor:
+    thread-pool-size: 10
+    execution-interval-ms: 250
+    shutdown-timeout-seconds: 10
+  security:
+    enable-input-validation: true
+    enable-audit-logging: true
+    max-message-length: 1000
+    max-tasks-per-ssuuid: 100
